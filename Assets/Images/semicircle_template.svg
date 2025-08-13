@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- 透明背景 -->
+  <rect width="128" height="128" fill="none" fill-opacity="0"/>
+  
+  <!-- 半圆形状：圆弧在上，平边在下 -->
+  <!-- 使用白色填充，这样alpha通道为1 -->
+  <path d="M 32 96 A 32 32 0 0 1 96 96 Z" fill="white" fill-opacity="1"/>
+  
+  <!-- 说明：
+       - 半圆中心在 (64, 96)
+       - 半径为 32 像素
+       - 圆弧在上方，平边在下方 (y=96)
+       - 半圆占据 x: 32-96, y: 64-96 的区域
+  -->
+</svg>

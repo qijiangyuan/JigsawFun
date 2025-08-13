@@ -1,0 +1,41 @@
+{
+    "gridSize": 2,
+    "pieces": [
+        {
+            "row": 0,
+            "col": 0,
+            "fileName": "0_0.png",
+            "topEdge": 0,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 0
+        },
+        {
+            "row": 0,
+            "col": 1,
+            "fileName": "0_1.png",
+            "topEdge": 0,
+            "rightEdge": 0,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 1,
+            "col": 0,
+            "fileName": "1_0.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 0,
+            "leftEdge": 0
+        },
+        {
+            "row": 1,
+            "col": 1,
+            "fileName": "1_1.png",
+            "topEdge": 1,
+            "rightEdge": 0,
+            "bottomEdge": 0,
+            "leftEdge": 1
+        }
+    ]
+}

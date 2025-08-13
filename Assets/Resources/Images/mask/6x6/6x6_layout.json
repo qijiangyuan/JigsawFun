@@ -1,0 +1,329 @@
+{
+    "gridSize": 6,
+    "pieces": [
+        {
+            "row": 0,
+            "col": 0,
+            "fileName": "0_0.png",
+            "topEdge": 0,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 0
+        },
+        {
+            "row": 0,
+            "col": 1,
+            "fileName": "0_1.png",
+            "topEdge": 0,
+            "rightEdge": 1,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 0,
+            "col": 2,
+            "fileName": "0_2.png",
+            "topEdge": 0,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 2
+        },
+        {
+            "row": 0,
+            "col": 3,
+            "fileName": "0_3.png",
+            "topEdge": 0,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 0,
+            "col": 4,
+            "fileName": "0_4.png",
+            "topEdge": 0,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 0,
+            "col": 5,
+            "fileName": "0_5.png",
+            "topEdge": 0,
+            "rightEdge": 0,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 1,
+            "col": 0,
+            "fileName": "1_0.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 2,
+            "leftEdge": 0
+        },
+        {
+            "row": 1,
+            "col": 1,
+            "fileName": "1_1.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 2
+        },
+        {
+            "row": 1,
+            "col": 2,
+            "fileName": "1_2.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 1,
+            "col": 3,
+            "fileName": "1_3.png",
+            "topEdge": 2,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 2
+        },
+        {
+            "row": 1,
+            "col": 4,
+            "fileName": "1_4.png",
+            "topEdge": 2,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 1,
+            "col": 5,
+            "fileName": "1_5.png",
+            "topEdge": 2,
+            "rightEdge": 0,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 2,
+            "col": 0,
+            "fileName": "2_0.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 0
+        },
+        {
+            "row": 2,
+            "col": 1,
+            "fileName": "2_1.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 2,
+            "col": 2,
+            "fileName": "2_2.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 2,
+            "col": 3,
+            "fileName": "2_3.png",
+            "topEdge": 2,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 2,
+            "col": 4,
+            "fileName": "2_4.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 2,
+            "col": 5,
+            "fileName": "2_5.png",
+            "topEdge": 1,
+            "rightEdge": 0,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 3,
+            "col": 0,
+            "fileName": "3_0.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 0
+        },
+        {
+            "row": 3,
+            "col": 1,
+            "fileName": "3_1.png",
+            "topEdge": 2,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 3,
+            "col": 2,
+            "fileName": "3_2.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 3,
+            "col": 3,
+            "fileName": "3_3.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 2,
+            "leftEdge": 1
+        },
+        {
+            "row": 3,
+            "col": 4,
+            "fileName": "3_4.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 3,
+            "col": 5,
+            "fileName": "3_5.png",
+            "topEdge": 2,
+            "rightEdge": 0,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 4,
+            "col": 0,
+            "fileName": "4_0.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 0
+        },
+        {
+            "row": 4,
+            "col": 1,
+            "fileName": "4_1.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 4,
+            "col": 2,
+            "fileName": "4_2.png",
+            "topEdge": 2,
+            "rightEdge": 2,
+            "bottomEdge": 2,
+            "leftEdge": 2
+        },
+        {
+            "row": 4,
+            "col": 3,
+            "fileName": "4_3.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 1
+        },
+        {
+            "row": 4,
+            "col": 4,
+            "fileName": "4_4.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 1,
+            "leftEdge": 2
+        },
+        {
+            "row": 4,
+            "col": 5,
+            "fileName": "4_5.png",
+            "topEdge": 2,
+            "rightEdge": 0,
+            "bottomEdge": 1,
+            "leftEdge": 2
+        },
+        {
+            "row": 5,
+            "col": 0,
+            "fileName": "5_0.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 0,
+            "leftEdge": 0
+        },
+        {
+            "row": 5,
+            "col": 1,
+            "fileName": "5_1.png",
+            "topEdge": 1,
+            "rightEdge": 2,
+            "bottomEdge": 0,
+            "leftEdge": 2
+        },
+        {
+            "row": 5,
+            "col": 2,
+            "fileName": "5_2.png",
+            "topEdge": 1,
+            "rightEdge": 1,
+            "bottomEdge": 0,
+            "leftEdge": 1
+        },
+        {
+            "row": 5,
+            "col": 3,
+            "fileName": "5_3.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 0,
+            "leftEdge": 2
+        },
+        {
+            "row": 5,
+            "col": 4,
+            "fileName": "5_4.png",
+            "topEdge": 2,
+            "rightEdge": 1,
+            "bottomEdge": 0,
+            "leftEdge": 2
+        },
+        {
+            "row": 5,
+            "col": 5,
+            "fileName": "5_5.png",
+            "topEdge": 2,
+            "rightEdge": 0,
+            "bottomEdge": 0,
+            "leftEdge": 2
+        }
+    ]
+}

@@ -1,0 +1,81 @@
+/// <summary>
+    /// 添加单个方向的凸出部分到指定的mask像素数组
+    /// </summary>
+    /// <param name="pixels">像素数组</param>
+    /// <param name="maskWidth">Mask宽度</param>
+    /// <param name="maskHeight">Mask高度</param>
+    /// <param name="baseSize">基础正方形尺寸</param>
+    /// <param name="baseStartX">基础正方形在mask中的起始X坐标</param>
+    /// <param name="baseStartY">基础正方形在mask中的起始Y坐标</param>
+    /// <param name="direction">方向：0=上，1=右，2=下，3=左</param>
+    /// <param name="semicircleTemplate">半圆模板</param>
+    static void AddSingleProtrudingPartToMask(Color[] pixels, int maskWidth, int maskHeight, int baseSize, int baseStartX, int baseStartY, int direction, Texture2D semicircleTemplate)
+    {
+        // 获取半圆模板的像素
+        Color[] semicirclePixels = semicircleTemplate.GetPixels();
+        int semicircleWidth = semicircleTemplate.width;
+        int semicircleHeight = semicircleTemplate.height;
+        
+        // 计算半圆模板在最终Mask中的起始位置
+        int startX = 0;
+        int startY = 0;
+        
+        switch (direction)
+        {
+            case 0: // 上边凸出：半圆模板放在基础正方形上方
+                startX = baseStartX;
+                startY = baseStartY + baseSize;
+                break;
+            case 1: // 右边凸出：半圆模板放在基础正方形右方
+                startX = baseStartX + baseSize;
+                startY = baseStartY;
+                break;
+            case 2: // 下边凸出：半圆模板放在基础正方形下方
+                startX = baseStartX;
+                startY = baseStartY - semicircleHeight;
+                break;
+            case 3: // 左边凸出：半圆模板放在基础正方形左方
+                startX = baseStartX - semicircleHeight;
+                startY = baseStartY;
+                break;
+        }
+        
+        // 根据方向复制半圆模板像素
+        for (int sy = 0; sy < semicircleHeight; sy++)
+        {
+            for (int sx = 0; sx < semicircleWidth; sx++)
+            {
+                Color semicircleColor = semicirclePixels[sy * semicircleWidth + sx];
+                
+                int targetX, targetY;
+                
+                switch (direction)
+                {
+                    case 0: // 上边凸出：翻转Y坐标，圆弧朝上
+                        targetX = startX + sx;
+                        targetY = startY + (semicircleHeight - 1 - sy);
+                        break;
+                    case 1: // 右边凸出：旋转90度，圆弧朝右
+                        targetX = startX + (semicircleHeight - 1 - sy);
+                        targetY = startY + sx;
+                        break;
+                    case 2: // 下边凸出：直接复制，圆弧朝下
+                        targetX = startX + sx;
+                        targetY = startY + sy;
+                        break;
+                    case 3: // 左边凸出：旋转270度，圆弧朝左
+                        targetX = startX + sy;
+                        targetY = startY + (semicircleWidth - 1 - sx);
+                        break;
+                    default:
+                        continue;
+                }
+                
+                // 检查边界并复制像素（包括透明像素）
+                if (targetX >= 0 && targetX < maskWidth && targetY >= 0 && targetY < maskHeight)
+                {
+                    pixels[targetY * maskWidth + targetX] = semicircleColor;
+                }
+            }
+        }
+    }

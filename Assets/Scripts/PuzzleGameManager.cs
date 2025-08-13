@@ -1,0 +1,329 @@
+using UnityEngine;
+using System.Collections;
+
+/// <summary>
+/// 拼图游戏管理器
+/// 负责协调游戏的整体流程和各组件之间的通信
+/// </summary>
+public class PuzzleGameManager : MonoBehaviour
+{
+    [Header("游戏组件")]
+    public JigsawGenerator jigsawGenerator;
+    public PuzzleBoard puzzleBoard;
+    public PuzzleUI puzzleUI;
+    
+    [Header("游戏设置")]
+    public string imagePath = "Images/puzzle_image";
+    public int defaultGridSize = 4;
+    public bool autoStartGame = true;
+    
+    [Header("音效设置")]
+    public AudioSource audioSource;
+    public AudioClip snapSound;
+    public AudioClip completeSound;
+    public AudioClip errorSound;
+    
+    private bool gameInitialized = false;
+    private bool gameInProgress = false;
+    
+    public static PuzzleGameManager Instance { get; private set; }
+    
+    void Awake()
+    {
+        // 单例模式
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+    }
+    
+    void Start()
+    {
+        InitializeGame();
+        
+        if (autoStartGame)
+        {
+            StartCoroutine(StartGameAfterDelay(0.5f));
+        }
+    }
+    
+    /// <summary>
+    /// 初始化游戏
+    /// </summary>
+    void InitializeGame()
+    {
+        // 查找组件
+        FindGameComponents();
+        
+        // 设置组件引用
+        SetupComponentReferences();
+        
+        // 初始化音效
+        SetupAudio();
+        
+        gameInitialized = true;
+        Debug.Log("拼图游戏初始化完成");
+    }
+    
+    /// <summary>
+    /// 查找游戏组件
+    /// </summary>
+    void FindGameComponents()
+    {
+        if (jigsawGenerator == null)
+        {
+            jigsawGenerator = FindObjectOfType<JigsawGenerator>();
+        }
+        
+        if (puzzleBoard == null)
+        {
+            puzzleBoard = FindObjectOfType<PuzzleBoard>();
+        }
+        
+        if (puzzleUI == null)
+        {
+            puzzleUI = FindObjectOfType<PuzzleUI>();
+        }
+        
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 设置组件之间的引用关系
+    /// </summary>
+    void SetupComponentReferences()
+    {
+        if (puzzleUI != null && puzzleBoard != null)
+        {
+            puzzleUI.puzzleBoard = puzzleBoard;
+        }
+        
+        if (puzzleBoard != null && jigsawGenerator != null)
+        {
+            puzzleBoard.jigsawGenerator = jigsawGenerator;
+        }
+    }
+    
+    /// <summary>
+    /// 设置音效
+    /// </summary>
+    void SetupAudio()
+    {
+        if (audioSource != null)
+        {
+            audioSource.playOnAwake = false;
+            audioSource.volume = 0.7f;
+        }
+    }
+    
+    /// <summary>
+    /// 延迟启动游戏
+    /// </summary>
+    IEnumerator StartGameAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartNewGame(defaultGridSize);
+    }
+    
+    /// <summary>
+    /// 开始新游戏
+    /// </summary>
+    public void StartNewGame(int gridSize = 4)
+    {
+        if (!gameInitialized)
+        {
+            Debug.LogWarning("游戏尚未初始化完成");
+            return;
+        }
+        
+        StartCoroutine(StartNewGameCoroutine(gridSize));
+    }
+    
+    /// <summary>
+    /// 开始新游戏协程
+    /// </summary>
+    IEnumerator StartNewGameCoroutine(int gridSize)
+    {
+        gameInProgress = false;
+        
+        // 禁用UI交互
+        if (puzzleUI != null)
+        {
+            puzzleUI.SetButtonsInteractable(false);
+        }
+        
+        // 清理现有拼图块
+        ClearExistingPieces();
+        
+        yield return new WaitForSeconds(0.1f);
+        
+        // 生成新拼图
+        if (jigsawGenerator != null)
+        {
+            jigsawGenerator.gridSize = gridSize;
+            jigsawGenerator.GeneratePuzzle();
+        }
+        
+        yield return new WaitForSeconds(0.5f);
+        
+        // 初始化拼图盘
+        if (puzzleBoard != null)
+        {
+            puzzleBoard.gridSize = gridSize;
+            puzzleBoard.InitializePuzzle();
+        }
+        
+        yield return new WaitForSeconds(0.2f);
+        
+        // 启用UI交互
+        if (puzzleUI != null)
+        {
+            puzzleUI.SetButtonsInteractable(true);
+        }
+        
+        gameInProgress = true;
+        Debug.Log($"新游戏开始，难度: {gridSize}x{gridSize}");
+    }
+    
+    /// <summary>
+    /// 清理现有拼图块
+    /// </summary>
+    void ClearExistingPieces()
+    {
+        GameObject[] pieces = GameObject.FindGameObjectsWithTag("PuzzlePiece");
+        foreach (GameObject piece in pieces)
+        {
+            DestroyImmediate(piece);
+        }
+    }
+    
+    /// <summary>
+    /// 播放音效
+    /// </summary>
+    public void PlaySound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
+    }
+    
+    /// <summary>
+    /// 播放吸附音效
+    /// </summary>
+    public void PlaySnapSound()
+    {
+        PlaySound(snapSound);
+    }
+    
+    /// <summary>
+    /// 播放完成音效
+    /// </summary>
+    public void PlayCompleteSound()
+    {
+        PlaySound(completeSound);
+    }
+    
+    /// <summary>
+    /// 播放错误音效
+    /// </summary>
+    public void PlayErrorSound()
+    {
+        PlaySound(errorSound);
+    }
+    
+    /// <summary>
+    /// 游戏暂停
+    /// </summary>
+    public void PauseGame()
+    {
+        Time.timeScale = 0f;
+        gameInProgress = false;
+    }
+    
+    /// <summary>
+    /// 游戏恢复
+    /// </summary>
+    public void ResumeGame()
+    {
+        Time.timeScale = 1f;
+        gameInProgress = true;
+    }
+    
+    /// <summary>
+    /// 获取游戏状态
+    /// </summary>
+    public bool IsGameInProgress()
+    {
+        return gameInProgress && gameInitialized;
+    }
+    
+    /// <summary>
+    /// 获取当前难度
+    /// </summary>
+    public int GetCurrentDifficulty()
+    {
+        return puzzleBoard != null ? puzzleBoard.gridSize : defaultGridSize;
+    }
+    
+    /// <summary>
+    /// 设置图片路径
+    /// </summary>
+    public void SetImagePath(string newImagePath)
+    {
+        imagePath = newImagePath;
+        if (jigsawGenerator != null)
+        {
+            // 这里可以添加设置图片路径的逻辑
+            Debug.Log($"图片路径设置为: {imagePath}");
+        }
+    }
+    
+    /// <summary>
+    /// 重新开始当前游戏
+    /// </summary>
+    public void RestartCurrentGame()
+    {
+        if (puzzleBoard != null)
+        {
+            StartNewGame(puzzleBoard.gridSize);
+        }
+        else
+        {
+            StartNewGame(defaultGridSize);
+        }
+    }
+    
+    /// <summary>
+    /// 退出游戏
+    /// </summary>
+    public void QuitGame()
+    {
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
+    }
+    
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+}
