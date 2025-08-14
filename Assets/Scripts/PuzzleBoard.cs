@@ -158,20 +158,31 @@ public class PuzzleBoard : MonoBehaviour
     {
         foreach (PuzzlePiece piece in puzzlePieces)
         {
-            // 从名称中解析行列信息
+            // 从名称中解析行列信息 (格式: Piece_行_列)
             string[] nameParts = piece.name.Split('_');
             if (nameParts.Length >= 3)
             {
-                int col = int.Parse(nameParts[1]);
-                int row = int.Parse(nameParts[2]);
+                int row = int.Parse(nameParts[1]);
+                int col = int.Parse(nameParts[2]);
                 
-                // 计算正确位置
-                Vector3 correctPos = CalculateCorrectPosition(row, col);
+                // 不重新计算correctPosition，因为JigsawGenerator已经正确设置了
+                // 只更新行列信息和gridSize（用于normal map）
+                if (piece.correctPosition != Vector3.zero)
+                {
+                    // 如果correctPosition已经设置，只更新行列和gridSize
+                    piece.row = row;
+                    piece.col = col;
+                    piece.gridSize = gridSize;
+                    piece.SetNormalMap(); // 重新设置normal map
+                }
+                else
+                {
+                    // 如果correctPosition未设置，则计算并设置完整信息
+                    Vector3 correctPos = CalculateCorrectPosition(row, col);
+                    piece.SetPieceInfo(row, col, correctPos, gridSize);
+                }
                 
-                // 设置拼图块信息
-                piece.SetPieceInfo(row, col, correctPos);
-                
-                Debug.Log($"设置拼图块 {piece.name}: 行={row}, 列={col}, 正确位置={correctPos}");
+                Debug.Log($"设置拼图块 {piece.name}: 行={row}, 列={col}, 正确位置={piece.correctPosition}");
             }
         }
     }

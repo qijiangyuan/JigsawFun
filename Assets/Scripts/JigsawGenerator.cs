@@ -266,7 +266,7 @@ public class JigsawGenerator : MonoBehaviour
 
         // 绘制网格线（深一点的灰色）
         Color gridColor = new Color(0.7f, 0.7f, 0.7f, 1.0f);
-        int gridLineWidth = 2; // 网格线宽度
+        int gridLineWidth = 6; // 网格线宽度（加粗）
 
         for (int i = 0; i <= gridSize; i++)
         {
@@ -700,7 +700,7 @@ public class JigsawGenerator : MonoBehaviour
     void CreatePieceObject(Texture2D tex, int cx, int cy, MaskPieceData pieceData)
     {
         GameObject piece = Instantiate(piecePrefab);
-        piece.name = $"Piece_{cx}_{cy}";
+        piece.name = $"Piece_{cy}_{cx}";
         piece.tag = "PuzzlePiece"; // 设置标签便于识别
         piece.layer = 0; // 设置为Default图层 (图层0)
 
@@ -829,8 +829,31 @@ public class JigsawGenerator : MonoBehaviour
             puzzlePiece = piece.AddComponent<PuzzlePiece>();
         }
 
-        // 设置拼图块信息，使用计算出的正确世界位置
-        puzzlePiece.SetPieceInfo(cy, cx, correctWorldPosition);
+        // 设置拼图块信息，使用计算出的正确世界位置（包含gridSize以自动设置normal map）
+        puzzlePiece.SetPieceInfo(cy, cx, correctWorldPosition, gridSize);
+
+        // 为PieceShadow子节点设置对应的piece mask图片
+        Transform shadowTransform = piece.transform.Find("PieceShadow");
+        if (shadowTransform != null)
+        {
+            SpriteRenderer shadowRenderer = shadowTransform.GetComponent<SpriteRenderer>();
+            if (shadowRenderer != null)
+            {
+                // 加载对应的piece mask图片
+                Texture2D maskTexture = LoadPuzzleMask(cx, cy, gridSize, gridSize);
+                if (maskTexture != null)
+                {
+                    // 创建sprite并设置到shadow renderer
+                    Sprite maskSprite = Sprite.Create(maskTexture, new Rect(0, 0, maskTexture.width, maskTexture.height), new Vector2(0.5f, 0.5f), 100f);
+                    shadowRenderer.sprite = maskSprite;
+                    Debug.Log($"为拼图块({cx},{cy})的PieceShadow设置mask图片: {maskTexture.width}x{maskTexture.height}");
+                }
+                else
+                {
+                    Debug.LogWarning($"无法为拼图块({cx},{cy})的PieceShadow加载mask图片");
+                }
+            }
+        }
 
         if (!puzzlePieces.Contains(puzzlePiece)) puzzlePieces.Add(puzzlePiece);
 

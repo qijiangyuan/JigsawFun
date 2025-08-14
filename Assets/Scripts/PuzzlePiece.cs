@@ -32,8 +32,13 @@ public class PuzzlePiece : MonoBehaviour
     public int col;
     public Vector3 correctPosition; // 正确位置
     public bool isPlaced = false; // 是否已正确放置
+    public int gridSize; // 拼图网格大小，用于构建normal map路径
 
     public AudioClip snapSound; // 吸附音效
+    
+    // Normal map相关
+    private Texture2D normalMapTexture;
+    private MaterialPropertyBlock materialPropertyBlock;
 
     void Start()
     {
@@ -49,11 +54,12 @@ public class PuzzlePiece : MonoBehaviour
             pieceCollider.isTrigger = false;
         }
 
-        // 设置正确位置（如果没有设置的话）
-        if (correctPosition == Vector3.zero)
-        {
-            correctPosition = originalPosition;
-        }
+        // 注释掉这个逻辑，因为correctPosition应该在SetPieceInfo中正确设置
+        // 如果这里重置了correctPosition，会导致第一个拼图块的正确位置丢失
+        // if (correctPosition == Vector3.zero)
+        // {
+        //     correctPosition = originalPosition;
+        // }
     }
 
     void OnMouseDown()
@@ -79,6 +85,17 @@ public class PuzzlePiece : MonoBehaviour
         // 提升拼图块的渲染层级到全局最高
         globalTopSortingOrder++;
         spriteRenderer.sortingOrder = globalTopSortingOrder;
+        
+        // 同时设置PieceShadow的sortingOrder
+        Transform shadowTransform = transform.Find("PieceShadow");
+        if (shadowTransform != null)
+        {
+            SpriteRenderer shadowRenderer = shadowTransform.GetComponent<SpriteRenderer>();
+            if (shadowRenderer != null)
+            {
+                shadowRenderer.sortingOrder = globalTopSortingOrder;
+            }
+        }
 
         // 高亮显示
         spriteRenderer.color = highlightColor;
@@ -152,6 +169,17 @@ public class PuzzlePiece : MonoBehaviour
 
         // 正确放置后恢复到原始层级和颜色
         spriteRenderer.sortingOrder = originalSortingOrder;
+        
+        // 同时恢复PieceShadow的sortingOrder
+        Transform shadowTransform = transform.Find("PieceShadow");
+        if (shadowTransform != null)
+        {
+            SpriteRenderer shadowRenderer = shadowTransform.GetComponent<SpriteRenderer>();
+            if (shadowRenderer != null)
+            {
+                shadowRenderer.sortingOrder = originalSortingOrder;
+            }
+        }
         spriteRenderer.color = normalColor;
 
         // 播放吸附音效（如果有的话）
@@ -275,6 +303,104 @@ public class PuzzlePiece : MonoBehaviour
         row = pieceRow;
         col = pieceCol;
         correctPosition = correctPos;
+    }
+    
+    /// <summary>
+    /// 设置拼图块信息（包含gridSize）
+    /// </summary>
+    public void SetPieceInfo(int pieceRow, int pieceCol, Vector3 correctPos, int puzzleGridSize)
+    {
+        row = pieceRow;
+        col = pieceCol;
+        correctPosition = correctPos;
+        gridSize = puzzleGridSize;
+        
+        // 自动设置normal map
+        SetNormalMap();
+    }
+    
+    /// <summary>
+    /// 设置法线贴图
+    /// </summary>
+    public void SetNormalMap()
+    {
+        if (gridSize <= 0)
+        {
+            Debug.LogWarning($"PuzzlePiece ({row},{col}): gridSize未设置，无法加载normal map");
+            return;
+        }
+        
+        // 构建normal map路径：Resources/Images/mask/{gridSize}x{gridSize}/{row}_{col}_Normal.png
+        string normalMapPath = $"Images/mask/{gridSize}x{gridSize}/{row}_{col}_Normal";
+        
+        // 从Resources加载normal map
+        normalMapTexture = Resources.Load<Texture2D>(normalMapPath);
+        
+        if (normalMapTexture != null)
+        {
+            // 应用normal map到材质
+            ApplyNormalMapToRenderer();
+            Debug.Log($"PuzzlePiece ({row},{col}): 成功加载normal map: {normalMapPath}");
+        }
+        else
+        {
+            Debug.LogWarning($"PuzzlePiece ({row},{col}): 无法找到normal map: {normalMapPath}");
+        }
+    }
+    
+    /// <summary>
+    /// 将法线贴图应用到渲染器
+    /// </summary>
+    private void ApplyNormalMapToRenderer()
+    {
+        Renderer rend = GetComponent<Renderer>();
+        if (rend == null)
+        {
+            Debug.LogError($"PuzzlePiece ({row},{col}): 未找到Renderer组件");
+            return;
+        }
+        
+        // 初始化MaterialPropertyBlock
+        if (materialPropertyBlock == null)
+        {
+            materialPropertyBlock = new MaterialPropertyBlock();
+        }
+        
+        // 获取当前的MaterialPropertyBlock
+        rend.GetPropertyBlock(materialPropertyBlock);
+        
+        // 设置法线贴图 (URP Lit shader使用_BumpMap)
+        materialPropertyBlock.SetTexture("_BumpMap", normalMapTexture);
+        
+        // 启用法线贴图
+        materialPropertyBlock.SetFloat("_BumpScale", 1.0f);
+        
+        // 确保材质启用法线贴图关键字
+        Material mat = rend.material;
+        if (mat != null && normalMapTexture != null)
+        {
+            mat.EnableKeyword("_NORMALMAP");
+        }
+        
+        // 应用MaterialPropertyBlock
+        rend.SetPropertyBlock(materialPropertyBlock);
+    }
+    
+    /// <summary>
+    /// 手动设置法线贴图（可选的公共接口）
+    /// </summary>
+    /// <param name="normalTexture">法线贴图纹理</param>
+    public void SetCustomNormalMap(Texture2D normalTexture)
+    {
+        if (normalTexture == null)
+        {
+            Debug.LogWarning($"PuzzlePiece ({row},{col}): 传入的normal map为空");
+            return;
+        }
+        
+        normalMapTexture = normalTexture;
+        ApplyNormalMapToRenderer();
+        Debug.Log($"PuzzlePiece ({row},{col}): 手动设置normal map成功");
     }
 
     // 可视化调试

@@ -63,12 +63,22 @@
     <Compile Include="Assets\Scripts\PuzzleUI.cs" />
     <Compile Include="Assets\Scripts\MaskPiece.cs" />
     <Compile Include="Assets\Scripts\PuzzleTestScene.cs" />
+    <Compile Include="Assets\Scripts\GenerateNormals\PrecomputedNormalHelper.cs" />
     <Compile Include="Assets\TutorialInfo\Scripts\Readme.cs" />
     <Compile Include="Assets\Scripts\JigsawGenerator.cs" />
     <Compile Include="Assets\Scripts\PuzzleGameManager.cs" />
     <Compile Include="Assets\Scripts\PuzzleBoard.cs" />
     <Compile Include="Assets\Scripts\JigsawMaskGenerator.cs" />
     <Compile Include="Assets\Scripts\PuzzlePiece.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Shader\SpriteLitAutoNormal_Border.shader" />
+    <None Include="Assets\Shader\SpriteLitAutoNormal_Border_Optimized.shader" />
+    <None Include="Assets\Shader\SpriteLitAutoNormal_Border_Precomputed.shader" />
+    <None Include="Assets\Shader\Test\SpriteLit_DynamicNormal.shader" />
+    <None Include="Assets\Shader\Test\SpriteLitAlphaNormal.shader" />
+    <None Include="Assets\Shader\Test\NewSurfaceShader.shader" />
+    <None Include="Assets\Shader\Test\SpriteLit_DynamicNormal_Rounded.shader" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -403,12 +413,12 @@
       <HintPath>C:\Program Files\Unity\Hub\Editor\2022.3.62f1c1\Editor\Data\Managed\UnityEngine\UnityEditor.UnityConnectModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.VisualScripting.Antlr3.Runtime">
-      <HintPath>Library\PackageCache\com.unity.visualscripting@1.9.4\Runtime\VisualScripting.Flow\Dependencies\NCalc\Unity.VisualScripting.Antlr3.Runtime.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="DOTween">
       <HintPath>Assets\Plugins\Demigiant\DOTween\DOTween.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.VisualScripting.Antlr3.Runtime">
+      <HintPath>Library\PackageCache\com.unity.visualscripting@1.9.4\Runtime\VisualScripting.Flow\Dependencies\NCalc\Unity.VisualScripting.Antlr3.Runtime.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="netstandard">
