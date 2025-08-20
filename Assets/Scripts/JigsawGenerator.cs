@@ -1,7 +1,8 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System;
+using UnityEngine;
+using static GameManager;
 
 public class JigsawGenerator : MonoBehaviour
 {
@@ -30,6 +31,20 @@ public class JigsawGenerator : MonoBehaviour
 
 
         // 使用默认的行列数生成拼图
+        //GeneratePuzzle();
+
+        // 从游戏数据生成拼图
+        GeneratePuzzleFromGameData();
+    }
+
+    private void GeneratePuzzleFromGameData()
+    {
+        GameData currentData = GameManager.Instance.currentGameData;
+        sourceImage = currentData.selectedImage.texture;
+        gridSize = currentData.difficulty;
+        Debug.Log($"从游戏数据生成拼图: {currentData.imageName}, 难度={gridSize}x{gridSize}");
+        UIManager.Instance.ShowPage<GameplayPage>();
+
         GeneratePuzzle();
     }
 
@@ -99,21 +114,41 @@ public class JigsawGenerator : MonoBehaviour
     }
 
     /// <summary>
+    /// 拼图生成进度回调
+    /// </summary>
+    public System.Action<float> OnGenerationProgress;
+    
+    /// <summary>
+    /// 拼图生成完成回调
+    /// </summary>
+    public System.Action OnGenerationComplete;
+
+    /// <summary>
     /// 生成拼图
     /// </summary>
     public void GeneratePuzzle()
+    {
+        StartCoroutine(GeneratePuzzleCoroutine());
+    }
+    
+    /// <summary>
+    /// 生成拼图协程
+    /// </summary>
+    private System.Collections.IEnumerator GeneratePuzzleCoroutine()
     {
         // 加载JSON布局文件
         JigsawLayoutData layoutData = LoadJigsawLayout(gridSize);
         if (layoutData == null)
         {
             Debug.LogError("无法加载拼图布局数据，停止生成拼图");
-            return;
+            yield break;
         }
 
         // 设置行列数
         int cols = gridSize;
         int rows = gridSize;
+        int totalPieces = cols * rows;
+        int currentPiece = 0;
 
         int pieceWidth = sourceImage.width / cols;
         int pieceHeight = sourceImage.height / rows;
@@ -149,17 +184,38 @@ public class JigsawGenerator : MonoBehaviour
 
                 Texture2D pieceTex = CreatePieceWithMask(x, y, pieceWidth, pieceHeight, mask, cols, rows, pieceData);
                 CreatePieceObject(pieceTex, x, y, pieceData);
+                
+                // 更新进度
+                currentPiece++;
+                float progress = (float)currentPiece / totalPieces * 0.8f; // 拼图块生成占80%
+                OnGenerationProgress?.Invoke(progress);
+                
+                // 每生成几个拼图块就等待一帧，避免卡顿
+                if (currentPiece % 3 == 0)
+                {
+                    yield return null;
+                }
             }
         }
 
         // 随机分布拼图块位置
+        OnGenerationProgress?.Invoke(0.85f);
         RandomizePiecePositions();
+        yield return null;
 
         // 拼图生成完成后调整摄像机
+        OnGenerationProgress?.Invoke(0.9f);
         AdjustCameraToFitPuzzle();
+        yield return null;
 
         // 创建拼图底座
+        OnGenerationProgress?.Invoke(0.95f);
         CreatePuzzleBase();
+        yield return null;
+        
+        // 完成
+        OnGenerationProgress?.Invoke(1.0f);
+        OnGenerationComplete?.Invoke();
     }
 
     /// <summary>

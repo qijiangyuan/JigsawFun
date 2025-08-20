@@ -151,7 +151,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c053d33c831b3ad41919011ce52b2211, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sourceImage: {fileID: 2800000, guid: e893b2177f95d69469e2a0d50c8d4ff7, type: 3}
+  sourceImage: {fileID: 2800000, guid: 3b1e8a5625845bd43a491718afdd68d2, type: 3}
   edgeImage: {fileID: 2800000, guid: 716a74dd8497d5449938ef6a950feb47, type: 3}
   piecePrefab: {fileID: 2473820229593360519, guid: e726273396cba7246af4b1d308bcb993,
     type: 3}

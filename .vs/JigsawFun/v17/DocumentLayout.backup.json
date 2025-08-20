@@ -3,6 +3,42 @@
   "WorkspaceRootPath": "D:\\UnityProjects\\JigsawFun\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\difficultypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\difficultypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|d:\\unityprojects\\jigsawfun\\assets\\shader\\jigsawgrid.shader||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\shader\\jigsawgrid.shader||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|d:\\unityprojects\\jigsawfun\\assets\\shader\\jigsawoverlayurp.shader||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\shader\\jigsawoverlayurp.shader||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\imageloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\imageloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\gamemanagertest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gamemanagertest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\gameplaypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\gameplaypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\UnityProjects\\JigsawFun\\hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader||{3B902123-F8A7-4915-9F01-361F908088D0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader||{3B902123-F8A7-4915-9F01-361F908088D0}"
     },
@@ -46,24 +82,133 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "JigsawGrid.shader",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\JigsawGrid.shader",
+              "RelativeDocumentMoniker": "Assets\\Shader\\JigsawGrid.shader",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\JigsawGrid.shader",
+              "RelativeToolTip": "Assets\\Shader\\JigsawGrid.shader",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
+              "WhenOpened": "2025-08-19T14:46:10.544Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "JigsawOverlayURP.shader",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\JigsawOverlayURP.shader",
+              "RelativeDocumentMoniker": "Assets\\Shader\\JigsawOverlayURP.shader",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\JigsawOverlayURP.shader",
+              "RelativeToolTip": "Assets\\Shader\\JigsawOverlayURP.shader",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAAANUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
+              "WhenOpened": "2025-08-19T14:25:50.516Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "DifficultyPage.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\DifficultyPage.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\DifficultyPage.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\DifficultyPage.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\DifficultyPage.cs",
+              "ViewState": "AgIAAEkAAAAAAAAAAAAMwGIAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-19T01:52:38.635Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "UIManager.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\UIManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\UIManager.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\UIManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\UIManager.cs",
+              "ViewState": "AgIAAFkAAAAAAAAAAAAqwF0AAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T07:08:21.134Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ImageLoader.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\ImageLoader.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\ImageLoader.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\ImageLoader.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\ImageLoader.cs",
+              "ViewState": "AgIAAFIAAAAAAAAAAAAuwB8AAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T09:04:14.666Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "GalleryPage.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GalleryPage.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\GalleryPage.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GalleryPage.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\GalleryPage.cs",
+              "ViewState": "AgIAAMkAAAAAAAAAAAA+wN8AAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T09:04:03.513Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "GameManagerTest.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\GameManagerTest.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\GameManagerTest.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\GameManagerTest.cs",
+              "RelativeToolTip": "Assets\\Scripts\\GameManagerTest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T08:20:46.187Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "BasePage.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\BasePage.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\BasePage.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\BasePage.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\BasePage.cs",
+              "ViewState": "AgIAAD0AAAAAAAAAAAAewEwAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T07:06:25.553Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "GameplayPage.cs",
+              "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GameplayPage.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\GameplayPage.cs",
+              "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GameplayPage.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\GameplayPage.cs",
+              "ViewState": "AgIAAHEAAAAAAAAAAAApwIwAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T07:04:07.153Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "SpriteLitAutoNormal_Border_Optimized.shader",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
               "RelativeDocumentMoniker": "hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
               "RelativeToolTip": "hlsl Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
-              "ViewState": "AgIAAF8AAAAAAAAAAAAqwH0AAABEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
-              "WhenOpened": "2025-08-14T03:37:11.361Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-14T03:37:11.361Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 10,
               "Title": "SpriteLitAutoNormal_Border_Optimized.shader",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
               "RelativeDocumentMoniker": "Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
@@ -71,12 +216,11 @@
               "RelativeToolTip": "Assets\\Shader\\SpriteLitAutoNormal_Border_Optimized.shader",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAzAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
-              "WhenOpened": "2025-08-14T03:17:24.957Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-14T03:17:24.957Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 11,
               "Title": "SpriteLitAutoNormal_Border.shader",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Shader\\SpriteLitAutoNormal_Border.shader",
               "RelativeDocumentMoniker": "Assets\\Shader\\SpriteLitAutoNormal_Border.shader",
@@ -84,12 +228,11 @@
               "RelativeToolTip": "Assets\\Shader\\SpriteLitAutoNormal_Border.shader",
               "ViewState": "AgIAAMsAAAAAAAAAAAAIwPkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
-              "WhenOpened": "2025-08-14T01:02:27.777Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-14T01:02:27.777Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 12,
               "Title": "JigsawGenerator.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\JigsawGenerator.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\JigsawGenerator.cs",
@@ -101,7 +244,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 13,
               "Title": "PuzzlePiece.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzlePiece.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzlePiece.cs",
@@ -113,7 +256,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 15,
               "Title": "PuzzleBoard.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzleBoard.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzleBoard.cs",
@@ -125,7 +268,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 16,
               "Title": "PuzzleGameManager.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzleGameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzleGameManager.cs",
@@ -137,7 +280,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 17,
               "Title": "PuzzleTestScene.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzleTestScene.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzleTestScene.cs",
@@ -149,7 +292,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 14,
               "Title": "JigsawMaskGenerator.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\JigsawMaskGenerator.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\JigsawMaskGenerator.cs",
