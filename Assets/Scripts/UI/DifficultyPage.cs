@@ -179,19 +179,19 @@ public class DifficultyPage : BasePage
         }
     }
     
-    /// <summary>
-    /// 获取当前游戏设置
-    /// </summary>
-    /// <returns>游戏设置</returns>
-    public GameSettings GetGameSettings()
-    {
-        return new GameSettings
-        {
-            selectedImage = selectedImage,
-            difficulty = currentDifficulty,
-            showBackground = showBackground
-        };
-    }
+    ///// <summary>
+    ///// 获取当前游戏设置
+    ///// </summary>
+    ///// <returns>游戏设置</returns>
+    //public GameSettings GetGameSettings()
+    //{
+    //    return new GameSettings
+    //    {
+    //        selectedImage = selectedImage,
+    //        difficulty = currentDifficulty,
+    //        showBackground = showBackground
+    //    };
+    //}
     
     /// <summary>
     /// 重置为默认设置
@@ -217,37 +217,37 @@ public class DifficultyPage : BasePage
         // 确保UI是最新的
         UpdateUI();
         
-        // 如果没有选中图片，禁用开始按钮
-        if (startButton != null)
-        {
-            startButton.interactable = selectedImage != null;
-        }
+        //// 如果没有选中图片，禁用开始按钮
+        //if (startButton != null)
+        //{
+        //    startButton.interactable = selectedImage != null;
+        //}
     }
 }
 
-/// <summary>
-/// 游戏设置数据类
-/// </summary>
-[System.Serializable]
-public class GameSettings
-{
-    public Sprite selectedImage;    // 选中的图片
-    public int difficulty;          // 难度 (n×n)
-    public bool showBackground;     // 是否显示背景图片
+///// <summary>
+///// 游戏设置数据类
+///// </summary>
+//[System.Serializable]
+//public class GameSettings
+//{
+//    public Sprite selectedImage;    // 选中的图片
+//    public int difficulty;          // 难度 (n×n)
+//    public bool showBackground;     // 是否显示背景图片
     
-    /// <summary>
-    /// 获取拼图块总数
-    /// </summary>
-    public int GetTotalPieces()
-    {
-        return difficulty * difficulty;
-    }
+//    /// <summary>
+//    /// 获取拼图块总数
+//    /// </summary>
+//    public int GetTotalPieces()
+//    {
+//        return difficulty * difficulty;
+//    }
     
-    /// <summary>
-    /// 获取难度描述
-    /// </summary>
-    public string GetDifficultyDescription()
-    {
-        return $"{difficulty}×{difficulty}";
-    }
-}
+//    /// <summary>
+//    /// 获取难度描述
+//    /// </summary>
+//    public string GetDifficultyDescription()
+//    {
+//        return $"{difficulty}×{difficulty}";
+//    }
+//}

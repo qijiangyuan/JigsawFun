@@ -6,6 +6,8 @@ using static GameManager;
 
 public class JigsawGenerator : MonoBehaviour
 {
+    public static JigsawGenerator Instance { get; private set; }
+
     public Texture2D sourceImage;
     public Texture2D edgeImage;
     public GameObject piecePrefab; // 带有 SpriteRenderer + PolygonCollider2D
@@ -21,8 +23,23 @@ public class JigsawGenerator : MonoBehaviour
     /// </summary>
     private List<PuzzlePiece> puzzlePieces = new List<PuzzlePiece>();
 
+    private void Awake()
+    {
+        // 单例模式
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     void Start()
     {
+
         if (sourceImage == null || piecePrefab == null || edgeImage == null)
         {
             Debug.LogError("请设置源图片和拼图预制件！");
@@ -43,7 +60,7 @@ public class JigsawGenerator : MonoBehaviour
         sourceImage = currentData.selectedImage.texture;
         gridSize = currentData.difficulty;
         Debug.Log($"从游戏数据生成拼图: {currentData.imageName}, 难度={gridSize}x{gridSize}");
-        UIManager.Instance.ShowPage<GameplayPage>();
+        //UIManager.Instance.ShowPage<GameplayPage>();
 
         GeneratePuzzle();
     }
@@ -215,6 +232,7 @@ public class JigsawGenerator : MonoBehaviour
         
         // 完成
         OnGenerationProgress?.Invoke(1.0f);
+        yield return new WaitForSeconds(1);
         OnGenerationComplete?.Invoke();
     }
 

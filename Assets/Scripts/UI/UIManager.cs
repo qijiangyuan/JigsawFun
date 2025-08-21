@@ -14,12 +14,12 @@ public class UIManager : MonoBehaviour
     //public BasePage gameplayPage;
     //public BasePage victoryPage;
     public List<BasePage> pages;
-    public LoadingPage loadingPage; // 加载页面引用
+    //public LoadingPage loadingPage; // 加载页面引用
 
     public GameObject EventSystem;
     public GameObject Canvas;
 
-    private Stack<BasePage> pageStack = new Stack<BasePage>();
+    //private Stack<BasePage> pageStack = new Stack<BasePage>();
     private BasePage currentPage;
     private bool isLoadingPageActive = false;
 
@@ -61,7 +61,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     /// <typeparam name="T">页面类型</typeparam>
     /// <param name="setupAction">页面设置回调</param>
-    public void ShowPage<T>(System.Action<T> setupAction = null) where T : BasePage
+    public void ShowPage<T>(Action<T> setupAction = null) where T : BasePage
     {
         T targetPage = null;
         foreach (BasePage page in pages)
@@ -80,11 +80,35 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        // 执行页面设置
-        setupAction?.Invoke(targetPage);
+
 
         ShowPage(targetPage);
+
+        // 执行页面设置
+        setupAction?.Invoke(targetPage);
     }
+
+    public void HidePage<T>() where T : BasePage
+    {
+        T targetPage = null;
+        foreach (BasePage page in pages)
+        {
+            if (page is T)
+            {
+                targetPage = page as T;
+                break;
+            }
+        }
+
+        if (targetPage == null)
+        {
+            Debug.LogError($"Page of type {typeof(T).Name} not found!");
+            return;
+        }
+
+        targetPage.HidePage();
+    }
+
 
     /// <summary>
     /// 显示指定页面实例
@@ -96,14 +120,14 @@ public class UIManager : MonoBehaviour
         if (page == null) return;
 
         // 如果当前有页面，先隐藏
-        if (currentPage != null)
-        {
-            currentPage.HidePage();
-            if (addToStack)
-            {
-                pageStack.Push(currentPage);
-            }
-        }
+        //if (currentPage != null)
+        //{
+        //    currentPage.HidePage();
+        //    if (addToStack)
+        //    {
+        //        pageStack.Push(currentPage);
+        //    }
+        //}
 
         currentPage = page;
         page.ShowPage();
@@ -116,20 +140,22 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void GoBack()
     {
-        if (pageStack.Count > 0)
-        {
-            BasePage previousPage = pageStack.Pop();
-            ShowPage(previousPage, false);
-        }
+        //if (pageStack.Count > 0)
+        //{
+        //    BasePage previousPage = pageStack.Pop();
+        //    ShowPage(previousPage, false);
+        //}
+
+        currentPage.HidePage();
     }
 
-    /// <summary>
-    /// 清空页面栈
-    /// </summary>
-    public void ClearPageStack()
-    {
-        pageStack.Clear();
-    }
+    ///// <summary>
+    ///// 清空页面栈
+    ///// </summary>
+    //public void ClearPageStack()
+    //{
+    //    pageStack.Clear();
+    //}
 
     /// <summary>
     /// 隐藏所有页面
@@ -143,60 +169,61 @@ public class UIManager : MonoBehaviour
                 page.HidePage();
             }
         }
-        
-        // 也隐藏加载页面
-        if (loadingPage != null)
-        {
-            loadingPage.HidePage();
-        }
+
+        //// 也隐藏加载页面
+        //if (loadingPage != null)
+        //{
+        //    loadingPage.HidePage();
+        //}
     }
-    
-    /// <summary>
-    /// 显示加载页面并开始加载
-    /// </summary>
-    /// <param name="targetSceneName">目标场景名称</param>
-    /// <param name="onLoadingComplete">加载完成回调</param>
-    public void ShowLoadingPage(string targetSceneName, System.Action onLoadingComplete = null)
-    {
-        if (loadingPage == null)
-        {
-            Debug.LogError("LoadingPage reference is null! Please assign it in the inspector.");
-            return;
-        }
-        
-        if (isLoadingPageActive)
-        {
-            Debug.LogWarning("Loading page is already active!");
-            return;
-        }
-        
-        isLoadingPageActive = true;
-        
-        // 隐藏当前页面但不添加到栈中
-        if (currentPage != null)
-        {
-            currentPage.HidePage();
-        }
-        
-        // 显示加载页面
-        loadingPage.ShowPage();
-        
-        // 开始加载
-        loadingPage.StartLoading(targetSceneName, () => {
-            isLoadingPageActive = false;
-            onLoadingComplete?.Invoke();
-        });
-    }
-    
+
+    ///// <summary>
+    ///// 显示加载页面并开始加载
+    ///// </summary>
+    ///// <param name="targetSceneName">目标场景名称</param>
+    ///// <param name="onLoadingComplete">加载完成回调</param>
+    //public void ShowLoadingPage(string targetSceneName, System.Action onLoadingComplete = null)
+    //{
+    //    if (loadingPage == null)
+    //    {
+    //        Debug.LogError("LoadingPage reference is null! Please assign it in the inspector.");
+    //        return;
+    //    }
+
+    //    if (isLoadingPageActive)
+    //    {
+    //        Debug.LogWarning("Loading page is already active!");
+    //        return;
+    //    }
+
+    //    isLoadingPageActive = true;
+
+    //    // 隐藏当前页面但不添加到栈中
+    //    if (currentPage != null)
+    //    {
+    //        currentPage.HidePage();
+    //    }
+
+    //    // 显示加载页面
+    //    loadingPage.ShowPage();
+
+    //    // 开始加载
+    //    loadingPage.StartLoading(targetSceneName, () =>
+    //    {
+    //        isLoadingPageActive = false;
+    //        onLoadingComplete?.Invoke();
+    //    });
+    //}
+
     /// <summary>
     /// 检查加载页面是否激活
     /// </summary>
     public bool IsLoadingPageActive => isLoadingPageActive;
-    
+
     /// <summary>
     /// 获取加载页面引用
     /// </summary>
-    public LoadingPage GetLoadingPage() => loadingPage;
+    //public LoadingPage GetLoadingPage() => loadingPage;
 
     #region GameManager Event Handling
 
@@ -244,7 +271,7 @@ public class UIManager : MonoBehaviour
     {
         ShowPage<GameplayPage>(page =>
         {
-            page.StartGame(new GameSettings
+            page.StartGame(new GameManager.GameData
             {
                 selectedImage = selectedImage,
                 difficulty = difficulty,

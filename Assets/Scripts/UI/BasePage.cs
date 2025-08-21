@@ -51,18 +51,18 @@ public abstract class BasePage : MonoBehaviour
             canvasGroup.blocksRaycasts = false;
         }
         
-        if (pageTransform != null)
-        {
-            switch (animationType)
-            {
-                case PageAnimationType.Scale:
-                    pageTransform.localScale = Vector3.zero;
-                    break;
-                case PageAnimationType.Slide:
-                    pageTransform.anchoredPosition = new Vector2(Screen.width, 0);
-                    break;
-            }
-        }
+        //if (pageTransform != null)
+        //{
+        //    switch (animationType)
+        //    {
+        //        case PageAnimationType.Scale:
+        //            pageTransform.localScale = Vector3.zero;
+        //            break;
+        //        case PageAnimationType.Slide:
+        //            pageTransform.anchoredPosition = new Vector2(Screen.width, 0);
+        //            break;
+        //    }
+        //}
         
         gameObject.SetActive(false);
     }
@@ -78,7 +78,7 @@ public abstract class BasePage : MonoBehaviour
         isVisible = true;
         
         // 执行显示动画
-        PlayShowAnimation();
+        //PlayShowAnimation();
         
         // 调用子类的显示逻辑
         OnPageShow();
@@ -93,18 +93,20 @@ public abstract class BasePage : MonoBehaviour
         if (!isVisible) return;
         
         isVisible = false;
-        
-        if (withAnimation)
-        {
-            PlayHideAnimation(() => {
-                gameObject.SetActive(false);
-            });
-        }
-        else
-        {
-            gameObject.SetActive(false);
-        }
-        
+
+        //if (withAnimation)
+        //{
+        //    PlayHideAnimation(() => {
+        //        gameObject.SetActive(false);
+        //    });
+        //}
+        //else
+        //{
+        //    gameObject.SetActive(false);
+        //}
+
+        gameObject.SetActive(false);
+
         // 调用子类的隐藏逻辑
         OnPageHide();
     }
@@ -172,7 +174,7 @@ public abstract class BasePage : MonoBehaviour
                     break;
                     
                 case PageAnimationType.Slide:
-                    hideSequence.Join(pageTransform.DOAnchorPos(new Vector2(-Screen.width, 0), animationDuration).SetEase(hideEase));
+                    hideSequence.Join(pageTransform.DOAnchorPos(new Vector2(Screen.width, 0), animationDuration).SetEase(hideEase));
                     break;
                     
                 case PageAnimationType.Fade:

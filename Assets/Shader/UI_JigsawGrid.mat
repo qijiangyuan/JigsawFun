@@ -29,10 +29,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AdaptiveStrength: 0.894
+    - _AdaptiveStrength: 0.8
     - _Cells: 3
     - _CircleRadius: 0.1482
-    - _ContrastThreshold: 0.881
+    - _ContrastThreshold: 0.3
     - _GridCount: 3
     - _GridSize: 3
     - _LineWidth: 0.0037250002
@@ -40,5 +40,5 @@ Material:
     - _RenderOnce: 0
     - _ToothSize: 0.0569
     m_Colors:
-    - _Color: {r: 0.46226418, g: 0.46226418, b: 0.46226418, a: 1}
+    - _Color: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
