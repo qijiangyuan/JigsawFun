@@ -1,12 +1,14 @@
 using DG.Tweening;
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// 拼图块拖放和吸附控制脚本
 /// </summary>
-public class PuzzlePiece : MonoBehaviour
+public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [Header("拖放设置")]
     public float snapDistance = 1.0f; // 吸附距离
@@ -35,7 +37,7 @@ public class PuzzlePiece : MonoBehaviour
     public int gridSize; // 拼图网格大小，用于构建normal map路径
 
     public AudioClip snapSound; // 吸附音效
-    
+
     // Normal map相关
     private Texture2D normalMapTexture;
     private MaterialPropertyBlock materialPropertyBlock;
@@ -62,11 +64,15 @@ public class PuzzlePiece : MonoBehaviour
         // }
     }
 
-    void OnMouseDown()
+
+    public void OnBeginDrag(PointerEventData eventData)
     {
+        EventDispatcher.Dispatch(EventNames.SELECT_PIECE, this);
         if (isPlaced) return; // 已正确放置的拼图块不能再拖动
 
         isDragging = true;
+
+    
 
         // 检查主相机是否存在
         if (mainCamera == null)
@@ -85,7 +91,7 @@ public class PuzzlePiece : MonoBehaviour
         // 提升拼图块的渲染层级到全局最高
         globalTopSortingOrder++;
         spriteRenderer.sortingOrder = globalTopSortingOrder;
-        
+
         // 同时设置PieceShadow的sortingOrder
         Transform shadowTransform = transform.Find("PieceShadow");
         if (shadowTransform != null)
@@ -103,7 +109,7 @@ public class PuzzlePiece : MonoBehaviour
         //Debug.Log($"OnMouseDown - 主相机: {mainCamera?.name}, 屏幕坐标: {Input.mousePosition}, 世界坐标: {mousePos}, 偏移: {offset}");
     }
 
-    void OnMouseDrag()
+    public void OnDrag(PointerEventData eventData)
     {
         if (!isDragging || isPlaced) return;
 
@@ -125,8 +131,9 @@ public class PuzzlePiece : MonoBehaviour
         //Debug.Log($"OnMouseDrag - 主相机: {mainCamera?.name}, 屏幕坐标: {Input.mousePosition}, 世界坐标: {mousePos}, 拼图块位置: {transform.position}");
     }
 
-    void OnMouseUp()
+    public void OnEndDrag(PointerEventData eventData)
     {
+  
         if (!isDragging) return;
 
         isDragging = false;
@@ -137,6 +144,83 @@ public class PuzzlePiece : MonoBehaviour
         // 检查是否可以吸附到正确位置
         CheckForSnap();
     }
+
+
+    //void OnMouseDown()
+    //{
+    //    if (isPlaced) return; // 已正确放置的拼图块不能再拖动
+
+    //    isDragging = true;
+
+    //    // 检查主相机是否存在
+    //    if (mainCamera == null)
+    //    {
+    //        Debug.LogError("主相机为空！无法进行坐标转换");
+    //        return;
+    //    }
+
+    //    // 计算鼠标与拼图块的偏移
+    //    Vector3 screenPos = Input.mousePosition;
+    //    screenPos.z = mainCamera.nearClipPlane; // 设置正确的Z值
+    //    Vector3 mousePos = mainCamera.ScreenToWorldPoint(screenPos);
+    //    mousePos.z = 0;
+    //    offset = transform.position - mousePos;
+
+    //    // 提升拼图块的渲染层级到全局最高
+    //    globalTopSortingOrder++;
+    //    spriteRenderer.sortingOrder = globalTopSortingOrder;
+
+    //    // 同时设置PieceShadow的sortingOrder
+    //    Transform shadowTransform = transform.Find("PieceShadow");
+    //    if (shadowTransform != null)
+    //    {
+    //        SpriteRenderer shadowRenderer = shadowTransform.GetComponent<SpriteRenderer>();
+    //        if (shadowRenderer != null)
+    //        {
+    //            shadowRenderer.sortingOrder = globalTopSortingOrder;
+    //        }
+    //    }
+
+    //    // 高亮显示
+    //    spriteRenderer.color = highlightColor;
+
+    //    //Debug.Log($"OnMouseDown - 主相机: {mainCamera?.name}, 屏幕坐标: {Input.mousePosition}, 世界坐标: {mousePos}, 偏移: {offset}");
+    //}
+
+    //void OnMouseDrag()
+    //{
+    //    if (!isDragging || isPlaced) return;
+
+    //    // 检查主相机是否存在
+    //    if (mainCamera == null)
+    //    {
+    //        Debug.LogError("主相机为空！无法进行坐标转换");
+    //        return;
+    //    }
+
+    //    // 更新拼图块位置
+    //    Vector3 screenPos = Input.mousePosition;
+    //    screenPos.z = mainCamera.nearClipPlane; // 设置正确的Z值
+    //    Vector3 mousePos = mainCamera.ScreenToWorldPoint(screenPos);
+    //    mousePos.z = 0;
+    //    transform.position = mousePos + offset;
+
+    //    // 调试输出坐标信息
+    //    //Debug.Log($"OnMouseDrag - 主相机: {mainCamera?.name}, 屏幕坐标: {Input.mousePosition}, 世界坐标: {mousePos}, 拼图块位置: {transform.position}");
+    //}
+
+    //void OnMouseUp()
+    //{
+    //    if (!isDragging) return;
+
+    //    isDragging = false;
+
+    //    // 放手后立即恢复正常颜色
+    //    spriteRenderer.color = normalColor;
+
+    //    // 检查是否可以吸附到正确位置
+    //    CheckForSnap();
+    //}
 
     /// <summary>
     /// 检查吸附
@@ -153,8 +237,8 @@ public class PuzzlePiece : MonoBehaviour
         }
         else
         {
-            // 检查是否可以与其他拼图块连接
-            CheckForConnection();
+            // 检查是否可以与其他拼图块连接，暂时不处理与其他拼图块连接，因为连接之后需要将两者看作一个整体，后面再填充这个逻辑
+            //CheckForConnection();
         }
     }
 
@@ -169,7 +253,7 @@ public class PuzzlePiece : MonoBehaviour
 
         // 正确放置后恢复到原始层级和颜色
         spriteRenderer.sortingOrder = originalSortingOrder;
-        
+
         // 同时恢复PieceShadow的sortingOrder
         Transform shadowTransform = transform.Find("PieceShadow");
         if (shadowTransform != null)
@@ -185,6 +269,8 @@ public class PuzzlePiece : MonoBehaviour
         // 播放吸附音效（如果有的话）
         AudioSource.PlayClipAtPoint(snapSound, transform.position);
 
+        EventDispatcher.Dispatch(EventNames.DESELECT_PIECE, this);
+
         // 检查是否完成拼图
         CheckPuzzleCompletion();
     }
@@ -195,7 +281,7 @@ public class PuzzlePiece : MonoBehaviour
     void CheckForConnection()
     {
         // 获取附近的拼图块
-        Collider2D[] nearbyPieces = Physics2D.OverlapCircleAll(transform.position, snapDistance, puzzlePieceLayer);
+        Collider2D[] nearbyPieces = Physics2D.OverlapCircleAll(transform.position, snapDistance * 2, puzzlePieceLayer);
 
         foreach (Collider2D piece in nearbyPieces)
         {
@@ -282,6 +368,7 @@ public class PuzzlePiece : MonoBehaviour
     {
         Debug.Log("拼图完成！");
         // 这里可以添加完成拼图的逻辑，比如播放动画、音效等
+        EventDispatcher.Dispatch(EventNames.PUZZLE_COMPLETED);
     }
 
     /// <summary>
@@ -304,7 +391,7 @@ public class PuzzlePiece : MonoBehaviour
         col = pieceCol;
         correctPosition = correctPos;
     }
-    
+
     /// <summary>
     /// 设置拼图块信息（包含gridSize）
     /// </summary>
@@ -314,11 +401,11 @@ public class PuzzlePiece : MonoBehaviour
         col = pieceCol;
         correctPosition = correctPos;
         gridSize = puzzleGridSize;
-        
+
         // 自动设置normal map
         SetNormalMap();
     }
-    
+
     /// <summary>
     /// 设置法线贴图
     /// </summary>
@@ -329,13 +416,13 @@ public class PuzzlePiece : MonoBehaviour
             Debug.LogWarning($"PuzzlePiece ({row},{col}): gridSize未设置，无法加载normal map");
             return;
         }
-        
+
         // 构建normal map路径：Resources/Images/mask/{gridSize}x{gridSize}/{row}_{col}_Normal.png
         string normalMapPath = $"Images/mask/{gridSize}x{gridSize}/{row}_{col}_Normal";
-        
+
         // 从Resources加载normal map
         normalMapTexture = Resources.Load<Texture2D>(normalMapPath);
-        
+
         if (normalMapTexture != null)
         {
             // 应用normal map到材质
@@ -347,7 +434,7 @@ public class PuzzlePiece : MonoBehaviour
             Debug.LogWarning($"PuzzlePiece ({row},{col}): 无法找到normal map: {normalMapPath}");
         }
     }
-    
+
     /// <summary>
     /// 将法线贴图应用到渲染器
     /// </summary>
@@ -359,33 +446,33 @@ public class PuzzlePiece : MonoBehaviour
             Debug.LogError($"PuzzlePiece ({row},{col}): 未找到Renderer组件");
             return;
         }
-        
+
         // 初始化MaterialPropertyBlock
         if (materialPropertyBlock == null)
         {
             materialPropertyBlock = new MaterialPropertyBlock();
         }
-        
+
         // 获取当前的MaterialPropertyBlock
         rend.GetPropertyBlock(materialPropertyBlock);
-        
+
         // 设置法线贴图 (URP Lit shader使用_BumpMap)
         materialPropertyBlock.SetTexture("_BumpMap", normalMapTexture);
-        
+
         // 启用法线贴图
         materialPropertyBlock.SetFloat("_BumpScale", 1.0f);
-        
+
         // 确保材质启用法线贴图关键字
         Material mat = rend.material;
         if (mat != null && normalMapTexture != null)
         {
             mat.EnableKeyword("_NORMALMAP");
         }
-        
+
         // 应用MaterialPropertyBlock
         rend.SetPropertyBlock(materialPropertyBlock);
     }
-    
+
     /// <summary>
     /// 手动设置法线贴图（可选的公共接口）
     /// </summary>
@@ -397,7 +484,7 @@ public class PuzzlePiece : MonoBehaviour
             Debug.LogWarning($"PuzzlePiece ({row},{col}): 传入的normal map为空");
             return;
         }
-        
+
         normalMapTexture = normalTexture;
         ApplyNormalMapToRenderer();
         Debug.Log($"PuzzlePiece ({row},{col}): 手动设置normal map成功");
@@ -428,4 +515,6 @@ public class PuzzlePiece : MonoBehaviour
         Gizmos.color = Color.white;
         Gizmos.DrawLine(transform.position, correctPosition);
     }
+
+
 }

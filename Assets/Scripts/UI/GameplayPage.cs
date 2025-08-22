@@ -15,14 +15,15 @@ public class GameplayPage : BasePage
     [Header("操作按钮")]
     public Button resetButton;              // 重置拼图按钮
     public Button hintButton;               // 提示原图按钮
-    public Button timerToggleButton;        // 计时器开关按钮
+    //public Button timerToggleButton;        // 计时器开关按钮
     public Button backButton;               // 返回按钮
 
     [Header("UI显示")]
     public TextMeshProUGUI timerText;                  // 计时器文本
-    public Image hintOverlay;               // 提示覆盖层
+    //public Image hintOverlay;               // 提示覆盖层
     public TextMeshProUGUI difficultyText;             // 难度显示
     public TextMeshProUGUI progressText;               // 进度显示
+    public TextMeshProUGUI hintRemainText;  // 提示次数显示
 
     [Header("音效")]
     public AudioSource audioSource;        // 音效播放器
@@ -30,7 +31,7 @@ public class GameplayPage : BasePage
     public AudioClip completeSound;         // 完成音效
 
     [Header("设置")]
-    public float hintDisplayTime = 3f;      // 提示显示时间
+    //public float hintDisplayTime = 3f;      // 提示显示时间
     public Sprite woodTexture;              // 木质背景纹理
     public Sprite fabricTexture;            // 布面背景纹理
 
@@ -43,11 +44,63 @@ public class GameplayPage : BasePage
     private int completedPieces = 0;
     private int totalPieces = 0;
 
+    //免费提示次数 
+    private int freeHintCount = 3; // 初始免费提示次数
+
+    private PuzzlePiece currentPiece; // 当前选中的拼图块
+
     protected override void Awake()
     {
         base.Awake();
         InitializeComponents();
     }
+
+    private void OnEnable()
+    {
+        SubscribeToPuzzleEvents();
+
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromPuzzleEvents();
+    }
+
+    /// <summary>
+    /// 订阅拼图事件
+    /// </summary>
+    private void SubscribeToPuzzleEvents()
+    {
+        // 这里需要与PuzzlePiece脚本配合，当拼图块正确放置时调用OnPieceCompleted
+        // 当所有拼图块完成时调用OnPuzzleCompleted
+        EventDispatcher.AddListener<PuzzlePiece>(EventNames.SELECT_PIECE, OnSelectPiece);
+        EventDispatcher.AddListener<PuzzlePiece>(EventNames.DESELECT_PIECE, OnDeselectPiece);
+        EventDispatcher.AddListener(EventNames.PUZZLE_COMPLETED, OnPuzzleCompleted);
+    }
+
+    //取消订阅拼图事件
+    private void UnsubscribeFromPuzzleEvents()
+    {
+        EventDispatcher.RemoveListener<PuzzlePiece>(EventNames.SELECT_PIECE, OnSelectPiece);
+        EventDispatcher.RemoveListener<PuzzlePiece>(EventNames.DESELECT_PIECE, OnDeselectPiece);
+        EventDispatcher.RemoveListener(EventNames.PUZZLE_COMPLETED, OnPuzzleCompleted);
+    }
+
+    private void OnSelectPiece(PuzzlePiece puzzlePiece)
+    {
+        hintButton.gameObject.SetActive(true);
+        currentPiece = puzzlePiece;
+    }
+
+    private void OnDeselectPiece(PuzzlePiece puzzlePiece)
+    {
+        if (currentPiece != null && currentPiece == puzzlePiece)
+        {
+            currentPiece = null;
+            hintButton.gameObject.SetActive(false);
+        }
+    }
+
 
     /// <summary>
     /// 初始化组件
@@ -59,10 +112,16 @@ public class GameplayPage : BasePage
             resetButton.onClick.AddListener(OnResetButtonClicked);
 
         if (hintButton != null)
+        {
             hintButton.onClick.AddListener(OnHintButtonClicked);
+            hintButton.gameObject.SetActive(false); // 初始隐藏提示按钮
+            hintRemainText.text = $"x{freeHintCount}";
+        }
 
-        if (timerToggleButton != null)
-            timerToggleButton.onClick.AddListener(OnTimerToggleClicked);
+
+
+        //if (timerToggleButton != null)
+        //    timerToggleButton.onClick.AddListener(OnTimerToggleClicked);
 
         if (backButton != null)
             backButton.onClick.AddListener(OnBackButtonClicked);
@@ -71,10 +130,10 @@ public class GameplayPage : BasePage
         //jigsawGenerator = FindObjectOfType<JigsawGenerator>();
 
         // 初始化提示覆盖层
-        if (hintOverlay != null)
-        {
-            hintOverlay.gameObject.SetActive(false);
-        }
+        //if (hintOverlay != null)
+        //{
+        //    hintOverlay.gameObject.SetActive(false);
+        //}
     }
 
     /// <summary>
@@ -146,14 +205,7 @@ public class GameplayPage : BasePage
         SubscribeToPuzzleEvents();
     }
 
-    /// <summary>
-    /// 订阅拼图事件
-    /// </summary>
-    private void SubscribeToPuzzleEvents()
-    {
-        // 这里需要与PuzzlePiece脚本配合，当拼图块正确放置时调用OnPieceCompleted
-        // 当所有拼图块完成时调用OnPuzzleCompleted
-    }
+
 
     /// <summary>
     /// 拼图块完成事件
@@ -188,6 +240,9 @@ public class GameplayPage : BasePage
         // 计算游戏时间
         float completionTime = currentGameTime;
 
+        //停止计时器
+        isTimerEnabled = false;
+
         // 使用GameManager处理游戏完成
         if (GameManager.Instance != null)
         {
@@ -220,34 +275,34 @@ public class GameplayPage : BasePage
     /// </summary>
     private void OnHintButtonClicked()
     {
-        StartCoroutine(ShowHint());
-    }
-
-    /// <summary>
-    /// 显示提示
-    /// </summary>
-    private IEnumerator ShowHint()
-    {
-        if (hintOverlay == null || currentGameData.selectedImage == null)
-            yield break;
-
-        // 设置提示图片
-        hintOverlay.sprite = currentGameData.selectedImage;
-        hintOverlay.gameObject.SetActive(true);
-
-        // 淡入动画
-        hintOverlay.color = new Color(1f, 1f, 1f, 0f);
-        hintOverlay.DOFade(0.8f, 0.3f);
-
-        // 等待指定时间
-        yield return new WaitForSeconds(hintDisplayTime);
-
-        // 淡出动画
-        hintOverlay.DOFade(0f, 0.3f).OnComplete(() =>
+        if (freeHintCount > 0)
         {
-            hintOverlay.gameObject.SetActive(false);
-        });
+            currentPiece?.SnapToCorrectPosition();
+            ConsumeFreeHint();
+        }
+        else
+        {
+            // 如果没有免费提示次数，可以在这里处理收费提示逻辑
+            Debug.Log("没有免费提示次数了，请充值！");
+        }
     }
+
+    //消耗免费提示次数
+    private void ConsumeFreeHint()
+    {
+        if (freeHintCount > 0)
+        {
+            freeHintCount--;
+            Debug.Log($"免费提示次数剩余: {freeHintCount}");
+            // 可以在这里显示提示次数的UI更新
+            hintRemainText.text = $"x{freeHintCount}";
+        }
+        else
+        {
+            Debug.Log("没有免费提示次数了，请充值！");
+        }
+    }
+
 
     /// <summary>
     /// 计时器开关点击事件
@@ -263,17 +318,17 @@ public class GameplayPage : BasePage
     /// </summary>
     private void UpdateTimerButton()
     {
-        if (timerToggleButton == null) return;
+        //if (timerToggleButton == null) return;
 
         // 可以通过改变按钮颜色或文本来表示开关状态
-        ColorBlock colors = timerToggleButton.colors;
-        colors.normalColor = isTimerEnabled ? Color.green : Color.gray;
-        timerToggleButton.colors = colors;
+        //ColorBlock colors = timerToggleButton.colors;
+        //colors.normalColor = isTimerEnabled ? Color.green : Color.gray;
+        //timerToggleButton.colors = colors;
 
         // 更新计时器文本显示
         if (timerText != null)
         {
-            timerText.gameObject.SetActive(isTimerEnabled);
+            //timerText.gameObject.SetActive(isTimerEnabled);
         }
     }
 

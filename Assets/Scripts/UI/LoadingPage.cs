@@ -12,10 +12,10 @@ public class LoadingPage : BasePage
     public TextMeshProUGUI progressText;
     public TextMeshProUGUI statusText;
     public TextMeshProUGUI puzzleProgressText;
-    
+
     [Header("加载设置")]
     public float minLoadingTime = 2f; // 最小加载时间
-    
+
     private float sceneLoadProgress = 0f;
     private float puzzleGenerateProgress = 0f;
     private AsyncOperation sceneLoad; // 场景加载操作
@@ -23,11 +23,11 @@ public class LoadingPage : BasePage
     private bool isLoading = false;
     private string targetSceneName;
     private Action onLoadingComplete;
-    
+
     protected override void Awake()
     {
         base.Awake();
-        
+
         // 确保组件引用
         if (progressBar == null)
             progressBar = GetComponentInChildren<Slider>();
@@ -38,13 +38,13 @@ public class LoadingPage : BasePage
         if (puzzleProgressText == null)
             puzzleProgressText = transform.Find("PuzzleProgressText")?.GetComponent<TextMeshProUGUI>();
     }
-    
+
     protected override void OnPageShow()
     {
         base.OnPageShow();
         InitializeLoadingUI();
     }
-    
+
     /// <summary>
     /// 初始化加载界面UI
     /// </summary>
@@ -52,21 +52,21 @@ public class LoadingPage : BasePage
     {
         if (progressBar != null)
             progressBar.value = 0f;
-            
+
         if (progressText != null)
             progressText.text = "0%";
-            
+
         if (statusText != null)
             statusText.text = "Loading...";
-            
+
         if (puzzleProgressText != null)
             puzzleProgressText.text = "Preparing to generate puzzle...";
-            
+
         sceneLoadProgress = 0f;
         puzzleGenerateProgress = 0f;
         totalProgress = 0f;
     }
-    
+
     /// <summary>
     /// 开始加载场景和拼图
     /// </summary>
@@ -75,29 +75,29 @@ public class LoadingPage : BasePage
     public void StartLoading(string sceneName, Action onComplete = null)
     {
         if (isLoading) return;
-        
+
         targetSceneName = sceneName;
         onLoadingComplete = onComplete;
         isLoading = true;
-        
+
         StartCoroutine(LoadSceneAndPuzzle());
     }
-    
+
     /// <summary>
     /// 加载场景和拼图的协程
     /// </summary>
     private IEnumerator LoadSceneAndPuzzle()
     {
         float startTime = Time.time;
-        
+
         // 开始异步加载场景
         sceneLoad = SceneManager.LoadSceneAsync(targetSceneName);
         sceneLoad.allowSceneActivation = false; // 先不激活场景
-        
+
         // 更新状态文本
         if (statusText != null)
             statusText.text = "Loading Scene...";
-        
+
         // 监听场景加载进度
         while (sceneLoad.progress < 0.9f)
         {
@@ -105,49 +105,49 @@ public class LoadingPage : BasePage
             UpdateProgress();
             yield return null;
         }
-        
+
         // 场景加载完成（但未激活）
         sceneLoadProgress = 0.9f;
         UpdateProgress();
-        
+
         // 更新状态文本
         if (statusText != null)
             statusText.text = "Generating Puzzle...";
-        
+
         // 监听拼图生成进度
         yield return StartCoroutine(WaitForPuzzleGeneration());
-        
+
         // 确保最小加载时间
         float elapsedTime = Time.time - startTime;
         if (elapsedTime < minLoadingTime)
         {
             yield return new WaitForSeconds(minLoadingTime - elapsedTime);
         }
-        
+
         // 完成加载
         sceneLoadProgress = 1f;
         puzzleGenerateProgress = 1f;
         UpdateProgress();
-        
+
         if (statusText != null)
             statusText.text = "Loading Complete！";
-        
-        yield return new WaitForSeconds(0.5f);
-        
+
+        //yield return new WaitForSeconds(0.5f);
+
         // 激活场景
         sceneLoad.allowSceneActivation = true;
-        
+
         // 等待场景完全激活
         yield return new WaitUntil(() => sceneLoad.isDone);
-        
+
         // 调用完成回调
         onLoadingComplete?.Invoke();
-        
+
         // 隐藏加载页面
         isLoading = false;
         HidePage();
     }
-    
+
     /// <summary>
     /// 等待拼图生成完成
     /// </summary>
@@ -156,7 +156,7 @@ public class LoadingPage : BasePage
         // 等待场景激活
         sceneLoad.allowSceneActivation = true;
         yield return new WaitUntil(() => sceneLoad.isDone);
-        
+
         // 查找JigsawGenerator
         JigsawGenerator jigsawGenerator = FindObjectOfType<JigsawGenerator>();
         if (jigsawGenerator == null)
@@ -165,59 +165,64 @@ public class LoadingPage : BasePage
             yield return StartCoroutine(SimulatePuzzleGeneration());
             yield break;
         }
-        
+
         // 订阅拼图生成进度事件
         bool generationComplete = false;
         jigsawGenerator.OnGenerationProgress += OnPuzzleGenerationProgress;
-        jigsawGenerator.OnGenerationComplete += () => { generationComplete = true; };
-        
+        jigsawGenerator.OnGenerationComplete += () =>
+        {
+            generationComplete = true;
+            //UIManager.Instance.ShowPage<GameplayPage>();
+            //UIManager.Instance.HidePage<LoadingPage>();
+        };
+
         // 等待拼图生成完成
         yield return new WaitUntil(() => generationComplete);
-        
+
         // 取消订阅
         jigsawGenerator.OnGenerationProgress -= OnPuzzleGenerationProgress;
     }
-    
+
     /// <summary>
     /// 拼图生成进度回调
     /// </summary>
     private void OnPuzzleGenerationProgress(float progress)
     {
         puzzleGenerateProgress = progress;
-        
+
         if (puzzleProgressText != null)
         {
             int percentage = Mathf.RoundToInt(puzzleGenerateProgress * 100);
             puzzleProgressText.text = $"Puzzle Generation Progress: {percentage}%";
         }
-        
+
         UpdateProgress();
     }
-    
+
     /// <summary>
     /// 模拟拼图生成进度（备用方案）
     /// </summary>
     private IEnumerator SimulatePuzzleGeneration()
     {
         float simulatedProgress = 0f;
-        
+
         while (simulatedProgress < 1f)
         {
             simulatedProgress += Time.deltaTime * 2f; // 模拟生成速度
             puzzleGenerateProgress = Mathf.Clamp01(simulatedProgress);
-            
+
             // 更新拼图进度文本
             if (puzzleProgressText != null)
             {
                 int percentage = Mathf.RoundToInt(puzzleGenerateProgress * 100);
                 puzzleProgressText.text = $"Puzzle Generation Progress: {percentage}%";
             }
-            
+
             UpdateProgress();
             yield return null;
         }
     }
-    
+
     /// <summary>
     /// 更新总体进度
     /// </summary>
@@ -225,17 +230,17 @@ public class LoadingPage : BasePage
     {
         // 场景加载占50%，拼图生成占50%
         totalProgress = (sceneLoadProgress * 0.5f) + (puzzleGenerateProgress * 0.5f);
-        
+
         if (progressBar != null)
             progressBar.value = totalProgress;
-            
+
         if (progressText != null)
         {
             int percentage = Mathf.RoundToInt(totalProgress * 100);
             progressText.text = $"{percentage}%";
         }
     }
-    
+
     /// <summary>
     /// 设置拼图生成进度（供外部调用）
     /// </summary>
@@ -243,16 +248,16 @@ public class LoadingPage : BasePage
     public void SetPuzzleGenerationProgress(float progress)
     {
         puzzleGenerateProgress = Mathf.Clamp01(progress);
-        
+
         if (puzzleProgressText != null)
         {
             int percentage = Mathf.RoundToInt(puzzleGenerateProgress * 100);
             puzzleProgressText.text = $"Puzzle Generation Progress: {percentage}%";
         }
-        
+
         UpdateProgress();
     }
-    
+
     /// <summary>
     /// 设置状态文本
     /// </summary>
@@ -262,7 +267,7 @@ public class LoadingPage : BasePage
         if (statusText != null)
             statusText.text = status;
     }
-    
+
     /// <summary>
     /// 检查是否正在加载
     /// </summary>

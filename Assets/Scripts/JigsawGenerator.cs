@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Unity.VisualScripting;
 using UnityEngine;
 using static GameManager;
 
@@ -72,8 +73,11 @@ public class JigsawGenerator : MonoBehaviour
         //如果点击了空格键
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            puzzlePieces[curIndex].SnapToCorrectPosition();
-            curIndex++;
+            if (curIndex >= 0 && curIndex < puzzlePieces.Count)
+            {
+                puzzlePieces[curIndex].SnapToCorrectPosition();
+                curIndex++;
+            }
         }
     }
 
@@ -134,7 +138,7 @@ public class JigsawGenerator : MonoBehaviour
     /// 拼图生成进度回调
     /// </summary>
     public System.Action<float> OnGenerationProgress;
-    
+
     /// <summary>
     /// 拼图生成完成回调
     /// </summary>
@@ -147,7 +151,7 @@ public class JigsawGenerator : MonoBehaviour
     {
         StartCoroutine(GeneratePuzzleCoroutine());
     }
-    
+
     /// <summary>
     /// 生成拼图协程
     /// </summary>
@@ -201,12 +205,12 @@ public class JigsawGenerator : MonoBehaviour
 
                 Texture2D pieceTex = CreatePieceWithMask(x, y, pieceWidth, pieceHeight, mask, cols, rows, pieceData);
                 CreatePieceObject(pieceTex, x, y, pieceData);
-                
+
                 // 更新进度
                 currentPiece++;
                 float progress = (float)currentPiece / totalPieces * 0.8f; // 拼图块生成占80%
                 OnGenerationProgress?.Invoke(progress);
-                
+
                 // 每生成几个拼图块就等待一帧，避免卡顿
                 if (currentPiece % 3 == 0)
                 {
@@ -229,7 +233,7 @@ public class JigsawGenerator : MonoBehaviour
         OnGenerationProgress?.Invoke(0.95f);
         CreatePuzzleBase();
         yield return null;
-        
+
         // 完成
         OnGenerationProgress?.Invoke(1.0f);
         yield return new WaitForSeconds(1);
@@ -376,6 +380,7 @@ public class JigsawGenerator : MonoBehaviour
 
         // 创建底座游戏对象
         GameObject baseObject = new GameObject("PuzzleBase");
+        PuzzleBase puzzleBase = baseObject.AddComponent<PuzzleBase>();
         SpriteRenderer baseSpriteRenderer = baseObject.AddComponent<SpriteRenderer>();
 
         // 创建精灵，使用与拼图块相同的pixelsPerUnit
@@ -396,7 +401,8 @@ public class JigsawGenerator : MonoBehaviour
 
         // 设置渲染层级，确保在拼图块后面
         baseSpriteRenderer.sortingOrder = -10;
-
+        // 添加碰撞器
+        puzzleBase.AddComponent<BoxCollider2D>();
         Debug.Log($"拼图底座已创建: 尺寸={baseSize}x{baseSize}, 网格={gridSize}x{gridSize}");
     }
 
@@ -893,7 +899,7 @@ public class JigsawGenerator : MonoBehaviour
         // 确保碰撞体不是触发器，这样OnMouse事件才能正常工作
         col.isTrigger = false;
 
-        // 等待一帧让精灵完全设置好，然后生成碰撞体路径
+        //等待一帧让精灵完全设置好，然后生成碰撞体路径
         StartCoroutine(GenerateColliderPath(col, sr));
 
         // 添加PuzzlePiece组件

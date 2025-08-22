@@ -159,7 +159,6 @@ public class GameManager : MonoBehaviour
         {
             page.StartLoading(GAME_SCENE, () =>
             {
-                Debug.LogError("GAME_SCENE load complete");
                 ChangeGameState(GameState.Playing);
                 OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
             });

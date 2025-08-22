@@ -188,10 +188,10 @@ public class PuzzleUI : MonoBehaviour
     /// </summary>
     void OnSolutionClicked()
     {
-        if (puzzleBoard != null)
-        {
-            puzzleBoard.ShowSolution();
-        }
+        //if (puzzleBoard != null)
+        //{
+        //    puzzleBoard.ShowSolution();
+        //}
     }
     
     /// <summary>
