@@ -141,11 +141,26 @@ public class DifficultyPage : BasePage
     /// </summary>
     private void UpdateUI()
     {
+        UpdateGridMaterial();
         UpdateDifficultyText();
         UpdateTitleText();
         UpdateLabels();
+        
     }
-    
+
+    /// <summary>
+    /// 更新PuzzleGrid材质属性  
+    /// </summary>
+    private void UpdateGridMaterial()
+    {
+        if (gridImage != null && gridImage.material != null)
+        {
+            gridImage.material.SetFloat("_GridCount", currentDifficulty);
+            float lineWidth = Mathf.Lerp(0.004f, 0.0018f, (currentDifficulty - 2f) / 8f);
+            gridImage.material.SetFloat("_LineWidth", lineWidth);
+        }
+    }
+
     /// <summary>
     /// 更新难度显示文本
     /// </summary>

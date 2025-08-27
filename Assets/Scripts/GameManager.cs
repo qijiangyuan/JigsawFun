@@ -131,7 +131,10 @@ public class GameManager : MonoBehaviour
         LoadScene(MAIN_SCENE, () =>
         {
             ChangeGameState(GameState.Gallery);
+            UIManager.Instance.HidePage<VictoryPage>();
+            UIManager.Instance.HidePage<GameplayPage>();
         });
+ 
     }
 
     public void LoadGameScene()

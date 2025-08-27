@@ -41,21 +41,21 @@ public class JigsawGenerator : MonoBehaviour
     void Start()
     {
 
-        if (sourceImage == null || piecePrefab == null || edgeImage == null)
-        {
-            Debug.LogError("请设置源图片和拼图预制件！");
-            return;
-        }
+        //if (sourceImage == null || piecePrefab == null || edgeImage == null)
+        //{
+        //    Debug.LogError("请设置源图片和拼图预制件！");
+        //    return;
+        //}
 
 
         // 使用默认的行列数生成拼图
         //GeneratePuzzle();
 
         // 从游戏数据生成拼图
-        GeneratePuzzleFromGameData();
+        //GeneratePuzzleFromGameData();
     }
 
-    private void GeneratePuzzleFromGameData()
+    public void GeneratePuzzleFromGameData()
     {
         GameData currentData = GameManager.Instance.currentGameData;
         sourceImage = currentData.selectedImage.texture;
@@ -64,6 +64,19 @@ public class JigsawGenerator : MonoBehaviour
         //UIManager.Instance.ShowPage<GameplayPage>();
 
         GeneratePuzzle();
+    }
+
+    public void ClearPuzzles()
+    {
+        foreach (var piece in puzzlePieces)
+        {
+            if (piece != null)
+            {
+                Destroy(piece.gameObject);
+            }
+        }
+        puzzlePieces.Clear();
+        curIndex = 0;
     }
 
 
@@ -79,6 +92,27 @@ public class JigsawGenerator : MonoBehaviour
                 curIndex++;
             }
         }
+    }
+
+    public void ResetPuzzle()
+    {
+        GameManager.Instance.ChangeGameState(GameState.Playing);
+        UIManager.Instance.ShowPage<GameplayPage>(page =>
+         {
+             page.ResetGame();
+         });
+
+        foreach (var piece in puzzlePieces)
+        {
+            piece.isPlaced = false;
+        }
+
+        curIndex = 0;
+
+        RandomizePiecePositions();
+        AdjustCameraToFitPuzzle();
+
+        UIManager.Instance.HidePage<VictoryPage>();
     }
 
 

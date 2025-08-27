@@ -161,6 +161,17 @@ public class GameplayPage : BasePage
         UpdateUI();
     }
 
+    public void ResetGame()
+    {
+        // 初始化游戏状态
+        gameStartTime = Time.time;
+        currentGameTime = 0f;
+        isGameActive = true;
+        isTimerEnabled = true;
+        completedPieces = 0;
+        //totalPieces = currentGameData.difficulty * currentGameData.difficulty;
+    }
+
     /// <summary>
     /// 设置背景
     /// </summary>

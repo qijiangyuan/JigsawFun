@@ -161,9 +161,13 @@ public class LoadingPage : BasePage
         JigsawGenerator jigsawGenerator = FindObjectOfType<JigsawGenerator>();
         if (jigsawGenerator == null)
         {
-            Debug.LogWarning("未找到JigsawGenerator，使用模拟进度");
+            Debug.LogError("未找到JigsawGenerator，使用模拟进度");
             yield return StartCoroutine(SimulatePuzzleGeneration());
             yield break;
+        }
+        else
+        {
+            jigsawGenerator.GeneratePuzzleFromGameData();
         }
 
         // 订阅拼图生成进度事件

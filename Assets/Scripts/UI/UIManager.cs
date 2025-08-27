@@ -253,6 +253,7 @@ public class UIManager : MonoBehaviour
                 break;
             case GameManager.GameState.Playing:
                 // GameplayPage会在游戏场景中显示
+
                 break;
             case GameManager.GameState.Victory:
                 ShowPage<VictoryPage>(page =>
