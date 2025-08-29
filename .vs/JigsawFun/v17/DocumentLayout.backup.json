@@ -3,28 +3,36 @@
   "WorkspaceRootPath": "D:\\UnityProjects\\JigsawFun\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|d:\\unityprojects\\jigsawfun\\assets\\scripts\\puzzlepiece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\puzzlepiece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\jigsawgenerator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\jigsawgenerator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\gameplaypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\gameplaypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\events\\eventdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\events\\eventdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\puzzlepiece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\puzzlepiece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|d:\\unityprojects\\jigsawfun\\assets\\scripts\\jigsawgenerator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\jigsawgenerator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\events\\eventdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\events\\eventdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\victorypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -43,16 +51,8 @@
       "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\difficultypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\gallerypage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\loadingpage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\loadingpage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\basepage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8A9395BD-3402-8C55-D550-4069411E20F0}|Assembly-CSharp.csproj|D:\\UnityProjects\\JigsawFun\\assets\\scripts\\puzzle\\puzzlebase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -82,7 +82,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 4,
+          "SelectedChildIndex": 8,
           "Children": [
             {
               "$type": "Bookmark",
@@ -98,45 +98,43 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 1,
               "Title": "JigsawGenerator.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\JigsawGenerator.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\JigsawGenerator.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\JigsawGenerator.cs",
               "RelativeToolTip": "Assets\\Scripts\\JigsawGenerator.cs",
-              "ViewState": "AgIAAFgAAAAAAAAAAAArwGYAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAEoAAAAAAAAAAAAhwFoAAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-12T03:27:46.021Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-12T03:27:46.021Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "GameplayPage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GameplayPage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\GameplayPage.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GameplayPage.cs",
               "RelativeToolTip": "Assets\\Scripts\\UI\\GameplayPage.cs",
-              "ViewState": "AgIAANkAAAAAAAAAAAArwOgAAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAI4AAAAAAAAAAAArwKsAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-18T07:04:07.153Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-18T07:04:07.153Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 5,
               "Title": "BasePage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\BasePage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\BasePage.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\BasePage.cs",
               "RelativeToolTip": "Assets\\Scripts\\UI\\BasePage.cs",
-              "ViewState": "AgIAAEUAAAAAAAAAAAAewFoAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAEUAAAAAAAAAAAAewFEAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-08-18T07:06:25.553Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 4,
               "Title": "GalleryPage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\GalleryPage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\GalleryPage.cs",
@@ -144,12 +142,11 @@
               "RelativeToolTip": "Assets\\Scripts\\UI\\GalleryPage.cs",
               "ViewState": "AgIAANEAAAAAAAAAAAAhwOEAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-18T09:04:03.513Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-18T09:04:03.513Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "PuzzleUI.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzleUI.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzleUI.cs",
@@ -157,51 +154,48 @@
               "RelativeToolTip": "Assets\\Scripts\\PuzzleUI.cs",
               "ViewState": "AgIAAKEAAAAAAAAAAAAhwLMAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-21T13:00:22.683Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-21T13:00:22.683Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "PuzzlePiece.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzlePiece.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzlePiece.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzlePiece.cs",
               "RelativeToolTip": "Assets\\Scripts\\PuzzlePiece.cs",
-              "ViewState": "AgIAAGgBAAAAAAAAAAAAAHIBAAA8AAAAAAAAAA==",
+              "ViewState": "AgIAAOIAAAAAAAAAAAAawPwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-08-13T03:26:46.456Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
               "Title": "UIManager.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\UIManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\UIManager.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\UIManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\UI\\UIManager.cs",
-              "ViewState": "AgIAAOgAAAAAAAAAAAAMwO4AAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAAPAAAAAAAAAAAAArwP8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-18T07:08:21.134Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-18T07:08:21.134Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
               "Title": "GameManager.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\GameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\GameManager.cs",
               "ToolTip": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\GameManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\GameManager.cs",
-              "ViewState": "AgIAALUAAAAAAAAAAAArwMQAAAAQAAAAAAAAAA==",
+              "ViewState": "AgIAAEkAAAAAAAAAAAArwF4AAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-20T15:03:56.11Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-20T15:03:56.11Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 7,
               "Title": "EventDispatcher.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\Events\\EventDispatcher.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Events\\EventDispatcher.cs",
@@ -209,12 +203,11 @@
               "RelativeToolTip": "Assets\\Scripts\\Events\\EventDispatcher.cs",
               "ViewState": "AgIAAEgAAAAAAAAAAAAhwFYAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-21T15:37:59.358Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-21T15:37:59.358Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "DifficultyPage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\DifficultyPage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\DifficultyPage.cs",
@@ -222,12 +215,11 @@
               "RelativeToolTip": "Assets\\Scripts\\UI\\DifficultyPage.cs",
               "ViewState": "AgIAAIUAAAAAAAAAAAAhwI8AAAAdAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-19T01:52:38.635Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-19T01:52:38.635Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "VictoryPage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\VictoryPage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\VictoryPage.cs",
@@ -235,12 +227,11 @@
               "RelativeToolTip": "Assets\\Scripts\\UI\\VictoryPage.cs",
               "ViewState": "AgIAAOUAAAAAAAAAAAArwPwAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-24T02:43:37.731Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-24T02:43:37.731Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "PuzzleBoard.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\PuzzleBoard.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PuzzleBoard.cs",
@@ -248,12 +239,11 @@
               "RelativeToolTip": "Assets\\Scripts\\PuzzleBoard.cs",
               "ViewState": "AgIAANoAAAAAAAAAAAAhwOoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-13T03:13:07.916Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-13T03:13:07.916Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "LoadingPage.cs",
               "DocumentMoniker": "D:\\UnityProjects\\JigsawFun\\Assets\\Scripts\\UI\\LoadingPage.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\LoadingPage.cs",
