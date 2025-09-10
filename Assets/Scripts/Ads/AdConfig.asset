@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4487ba2c122a7a4f8e66f8a8e2c8ef9, type: 3}
   m_Name: AdConfig
   m_EditorClassIdentifier: 
-  androidAppKey: YOUR_ANDROID_APP_KEY
+  androidAppKey: 238a6104d
   iosAppKey: YOUR_IOS_APP_KEY
   interstitialAdUnitId: 4n6dvwk98qnuygum
   levelsBetweenInterstitials: 3
