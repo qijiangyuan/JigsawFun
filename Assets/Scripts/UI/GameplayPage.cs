@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static GameManager;
+using JigsawFun.Ads;
 
 public class GameplayPage : BasePage
 {
@@ -35,6 +36,10 @@ public class GameplayPage : BasePage
     public Sprite woodTexture;              // 木质背景纹理
     public Sprite fabricTexture;            // 布面背景纹理
 
+    [Header("广告区域")]
+    public RectTransform bannerAdArea;      // Banner广告区域
+    public Button watchAdButton;            // 观看广告获得提示按钮
+
     private GameData currentGameData;
 
     private float gameStartTime;
@@ -46,6 +51,7 @@ public class GameplayPage : BasePage
 
     //免费提示次数 
     private int freeHintCount = 3; // 初始免费提示次数
+    private HintManager hintManager; // 提示管理器
 
     private PuzzlePiece currentPiece; // 当前选中的拼图块
 
@@ -53,6 +59,7 @@ public class GameplayPage : BasePage
     {
         base.Awake();
         InitializeComponents();
+        InitializeAdSystem();
     }
 
     private void OnEnable()
@@ -64,6 +71,13 @@ public class GameplayPage : BasePage
     private void OnDisable()
     {
         UnsubscribeFromPuzzleEvents();
+
+        // 取消订阅提示管理器事件
+        if (hintManager != null)
+        {
+            //hintManager.OnHintCountChanged -= UpdateHintUI;
+            //hintManager.OnHintRewardReceived -= OnHintRewardReceived;
+        }
     }
 
     /// <summary>
@@ -115,7 +129,11 @@ public class GameplayPage : BasePage
         {
             hintButton.onClick.AddListener(OnHintButtonClicked);
             hintButton.gameObject.SetActive(false); // 初始隐藏提示按钮
-            hintRemainText.text = $"x{freeHintCount}";
+        }
+
+        if (watchAdButton != null)
+        {
+            watchAdButton.onClick.AddListener(OnWatchAdButtonClicked);
         }
 
 
@@ -125,6 +143,12 @@ public class GameplayPage : BasePage
 
         if (backButton != null)
             backButton.onClick.AddListener(OnBackButtonClicked);
+
+        // 初始化提示管理器
+        if (hintManager == null)
+        {
+            hintManager = HintManager.Instance;
+        }
 
         // 获取拼图生成器
         //jigsawGenerator = FindObjectOfType<JigsawGenerator>();
@@ -159,6 +183,9 @@ public class GameplayPage : BasePage
 
         // 更新UI
         UpdateUI();
+
+        // 初始化提示UI
+        UpdateHintUI();
     }
 
     public void ResetGame()
@@ -263,6 +290,16 @@ public class GameplayPage : BasePage
         {
             Debug.LogError("GameManager实例不存在！");
         }
+
+        // 通知PuzzleGameManager游戏完成，触发插屏广告逻辑
+        if (PuzzleGameManager.Instance != null)
+        {
+            PuzzleGameManager.Instance.OnGameCompleted();
+        }
+        else
+        {
+            Debug.LogWarning("PuzzleGameManager实例不存在，无法触发插屏广告逻辑！");
+        }
     }
 
     /// <summary>
@@ -286,31 +323,109 @@ public class GameplayPage : BasePage
     /// </summary>
     private void OnHintButtonClicked()
     {
-        if (freeHintCount > 0)
+        //if (hintManager != null && hintManager.CanUseHint())
+        //{
+        //    currentPiece?.SnapToCorrectPosition();
+        //    hintManager.UseHint();
+        //    UpdateHintUI();
+        //}
+        //else
         {
-            currentPiece?.SnapToCorrectPosition();
-            ConsumeFreeHint();
-        }
-        else
-        {
-            // 如果没有免费提示次数，可以在这里处理收费提示逻辑
-            Debug.Log("没有免费提示次数了，请充值！");
+            // 如果没有免费提示次数，显示观看广告按钮
+            Debug.Log("没有免费提示次数了，观看广告获得更多提示！");
+            ShowWatchAdOption();
         }
     }
 
-    //消耗免费提示次数
-    private void ConsumeFreeHint()
+    /// <summary>
+    /// 观看广告按钮点击事件
+    /// </summary>
+    private void OnWatchAdButtonClicked()
     {
-        if (freeHintCount > 0)
+        //if (AdManager.Instance != null && AdManager.Instance.IsRewardedAdReady())
+        //{
+        //    AdManager.Instance.ShowRewardedAd();
+        //}
+        //else
         {
-            freeHintCount--;
-            Debug.Log($"免费提示次数剩余: {freeHintCount}");
-            // 可以在这里显示提示次数的UI更新
-            hintRemainText.text = $"x{freeHintCount}";
+            Debug.LogWarning("激励视频广告未准备好");
+        }
+    }
+
+    /// <summary>
+    /// 显示观看广告选项
+    /// </summary>
+    private void ShowWatchAdOption()
+    {
+        if (watchAdButton != null)
+        {
+            watchAdButton.gameObject.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// 隐藏观看广告选项
+    /// </summary>
+    private void HideWatchAdOption()
+    {
+        if (watchAdButton != null)
+        {
+            watchAdButton.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// 初始化广告系统
+    /// </summary>
+    private void InitializeAdSystem()
+    {
+        // 确保AdManager已初始化
+        if (AdManager.Instance != null)
+        {
+            // 显示Banner广告
+            //AdManager.Instance.ShowBannerAd();
+
+            // 订阅提示奖励事件
+            if (hintManager != null)
+            {
+                //hintManager.OnHintCountChanged += UpdateHintUI;
+                // hintManager.OnHintRewardReceived += OnHintRewardReceived;
+            }
         }
         else
         {
-            Debug.Log("没有免费提示次数了，请充值！");
+            Debug.LogWarning("AdManager未初始化，无法显示Banner广告");
+        }
+    }
+
+    /// <summary>
+    /// 提示奖励接收事件
+    /// </summary>
+    private void OnHintRewardReceived(int rewardCount)
+    {
+        Debug.Log($"获得 {rewardCount} 个提示奖励！");
+        HideWatchAdOption();
+        UpdateHintUI();
+    }
+
+    /// <summary>
+    /// 更新提示UI显示
+    /// </summary>
+    private void UpdateHintUI()
+    {
+        if (hintRemainText != null && hintManager != null)
+        {
+            //hintRemainText.text = $"x{hintManager.CurrentHintCount}";
+        }
+
+        // 根据提示次数显示/隐藏观看广告按钮
+        if (hintManager != null && !hintManager.UseHint())
+        {
+            ShowWatchAdOption();
+        }
+        else
+        {
+            HideWatchAdOption();
         }
     }
 
@@ -424,6 +539,13 @@ public class GameplayPage : BasePage
     {
         base.OnPageShow();
         UpdateUI();
+        UpdateHintUI();
+
+        // 显示Banner广告
+        if (AdManager.Instance != null)
+        {
+            AdManager.Instance.BannerHandler.ShowBanner();
+        }
     }
 
     protected override void OnPageHide()
@@ -432,6 +554,12 @@ public class GameplayPage : BasePage
 
         // 停止游戏
         isGameActive = false;
+
+        // 隐藏Banner广告
+        if (AdManager.Instance != null)
+        {
+            AdManager.Instance.BannerHandler.HideBanner();
+        }
     }
 
     /// <summary>

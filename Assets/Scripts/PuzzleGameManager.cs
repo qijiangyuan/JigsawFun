@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using JigsawFun.Ads;
 
 /// <summary>
 /// 拼图游戏管理器
@@ -25,6 +26,7 @@ public class PuzzleGameManager : MonoBehaviour
     
     private bool gameInitialized = false;
     private bool gameInProgress = false;
+    private int completedLevels = 0; // 已完成关卡数
     
     public static PuzzleGameManager Instance { get; private set; }
     
@@ -46,6 +48,9 @@ public class PuzzleGameManager : MonoBehaviour
     void Start()
     {
         InitializeGame();
+        
+        // 加载已完成关卡数
+        completedLevels = PlayerPrefs.GetInt("CompletedLevels", 0);
         
         if (autoStartGame)
         {
@@ -305,6 +310,72 @@ public class PuzzleGameManager : MonoBehaviour
         {
             StartNewGame(defaultGridSize);
         }
+    }
+    
+    /// <summary>
+    /// 游戏完成处理
+    /// </summary>
+    public void OnGameCompleted()
+    {
+        if (!gameInProgress) return;
+        
+        gameInProgress = false;
+        completedLevels++;
+        
+        Debug.Log($"[PuzzleGameManager] 关卡完成，已完成关卡数: {completedLevels}");
+        
+        // 播放完成音效
+        PlayCompleteSound();
+        
+        // 触发插屏广告逻辑
+        TriggerInterstitialAd();
+        
+        // 保存完成关卡数
+        PlayerPrefs.SetInt("CompletedLevels", completedLevels);
+        PlayerPrefs.Save();
+    }
+    
+    /// <summary>
+    /// 触发插屏广告
+    /// </summary>
+    private void TriggerInterstitialAd()
+    {
+        // 确保AdManager已初始化
+        if (AdManager.Instance == null)
+        {
+            Debug.LogWarning("[PuzzleGameManager] AdManager未初始化，无法显示插屏广告");
+            return;
+        }
+        
+        // 通过AdManager的插屏广告处理器记录关卡完成
+        if (AdManager.Instance.InterstitialHandler != null)
+        {
+            AdManager.Instance.InterstitialHandler.OnLevelCompleted();
+        }
+        else
+        {
+            Debug.LogWarning("[PuzzleGameManager] InterstitialAdHandler未初始化");
+        }
+    }
+    
+    /// <summary>
+    /// 获取已完成关卡数
+    /// </summary>
+    /// <returns>已完成关卡数</returns>
+    public int GetCompletedLevels()
+    {
+        return completedLevels;
+    }
+    
+    /// <summary>
+    /// 重置关卡计数（用于测试或重置游戏进度）
+    /// </summary>
+    public void ResetLevelProgress()
+    {
+        completedLevels = 0;
+        PlayerPrefs.SetInt("CompletedLevels", completedLevels);
+        PlayerPrefs.Save();
+        Debug.Log("[PuzzleGameManager] 关卡进度已重置");
     }
     
     /// <summary>

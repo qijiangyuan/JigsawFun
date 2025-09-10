@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4487ba2c122a7a4f8e66f8a8e2c8ef9, type: 3}
+  m_Name: AdConfig
+  m_EditorClassIdentifier: 
+  androidAppKey: YOUR_ANDROID_APP_KEY
+  iosAppKey: YOUR_IOS_APP_KEY
+  interstitialAdUnitId: 4n6dvwk98qnuygum
+  levelsBetweenInterstitials: 3
+  interstitialCooldownTime: 30
+  rewardedAdUnitId: 6ex5h29wsigzv1tl
+  rewardHintCount: 3
+  bannerAdUnitId: h37ckomyc17qrun5
+  enableBannerAds: 1
+  bannerRefreshInterval: 60
+  dailyFreeHints: 5
+  maxStoredHints: 10
+  enableTestMode: 1
+  enableAdLogging: 1
