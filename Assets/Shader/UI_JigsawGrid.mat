@@ -32,12 +32,21 @@ Material:
     - _AdaptiveStrength: 0.8
     - _Cells: 3
     - _CircleRadius: 0.1482
+    - _ColorMask: 15
     - _ContrastThreshold: 0.3
+    - _FixedHeight: 1080
+    - _FixedWidth: 1920
     - _GridCount: 3
     - _GridSize: 3
     - _LineWidth: 0.0037250002
     - _RandomSeed: 1
-    - _RenderOnce: 0
+    - _RenderOnce: -0.5
+    - _Seed: 12345
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
     - _ToothSize: 0.0569
     m_Colors:
     - _Color: {r: 0, g: 0, b: 0, a: 1}

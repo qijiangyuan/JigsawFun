@@ -10,6 +10,14 @@ Shader "UI/JigsawGrid"
         _RenderOnce ("Render Once", Int) = 0
         _AdaptiveStrength ("Adaptive Color Strength", Range(0,1)) = 0.8
         _ContrastThreshold ("Contrast Threshold", Range(0,1)) = 0.3
+        
+        // UI遮罩支持
+        [HideInInspector] _StencilComp ("Stencil Comparison", Float) = 8
+        [HideInInspector] _Stencil ("Stencil ID", Float) = 0
+        [HideInInspector] _StencilOp ("Stencil Operation", Float) = 0
+        [HideInInspector] _StencilWriteMask ("Stencil Write Mask", Float) = 255
+        [HideInInspector] _StencilReadMask ("Stencil Read Mask", Float) = 255
+        [HideInInspector] _ColorMask ("Color Mask", Float) = 15
     }
     SubShader
     {
@@ -17,6 +25,17 @@ Shader "UI/JigsawGrid"
         Blend SrcAlpha OneMinusSrcAlpha
         ZWrite Off
         Cull Off
+        
+        // UI遮罩支持
+        Stencil
+        {
+            Ref [_Stencil]
+            Comp [_StencilComp]
+            Pass [_StencilOp]
+            ReadMask [_StencilReadMask]
+            WriteMask [_StencilWriteMask]
+        }
+        ColorMask [_ColorMask]
 
         Pass
         {
@@ -67,13 +86,7 @@ Shader "UI/JigsawGrid"
                 return length(uv - center) - r;
             }
             
-            // 使用固定种子的伪随机函数，确保每次渲染结果一致
-            float random(float2 seed)
-            {
-                // 使用固定的种子值，确保相同位置总是产生相同的随机值
-                float2 fixedSeed = seed + float2(123.456, 789.012);
-                return frac(sin(dot(fixedSeed, float2(12.9898, 78.233))) * 43758.5453);
-            }
+            // 移除随机函数，改为使用网格索引的奇偶性来确定方向
 
             half4 frag (v2f i) : SV_Target
             {
@@ -106,13 +119,13 @@ Shader "UI/JigsawGrid"
                             inAnyCircle = true;
                         }
                         
-                        // 绘制圆形边界（随机保留一半）
+                        // 绘制圆形边界（相邻部分方向相反）
                         // 对于垂直线上的圆形，根据x坐标分割
-                        // 使用网格索引作为种子，确保不受UV坐标变化影响
-                        float randVal = random(float2(k, i));
+                        // 使用网格索引的奇偶性确定方向，确保相邻网格方向相反
+                        bool keepLeft = ((k + i) % 2 == 0);
                         float tolerance = _LineWidth * 0.5; // 对称轴容差
                         
-                        if (randVal > 0.5) {
+                        if (keepLeft) {
                             // 保留左半部分（x < center.x + tolerance）
                             if (uv.x <= circleCenter.x + tolerance) {
                                 circleDistance = min(circleDistance, abs(circleDistValue));
@@ -145,13 +158,13 @@ Shader "UI/JigsawGrid"
                             inAnyCircle = true;
                         }
                         
-                        // 绘制圆形边界（随机保留一半）
+                        // 绘制圆形边界（相邻部分方向相反）
                         // 对于水平线上的圆形，根据y坐标分割
-                        // 使用网格索引作为种子，添加偏移避免与垂直线重复
-                        float randVal = random(float2(k + 1000, j + 1000));
+                        // 使用网格索引的奇偶性确定方向，确保相邻网格方向相反
+                        bool keepTop = ((k + j) % 2 == 0);
                         float tolerance = _LineWidth * 0.5; // 对称轴容差
                         
-                        if (randVal > 0.5) {
+                        if (keepTop) {
                             // 保留上半部分（y > center.y - tolerance）
                             if (uv.y >= circleCenter.y - tolerance) {
                                 circleDistance = min(circleDistance, abs(circleDistValue));

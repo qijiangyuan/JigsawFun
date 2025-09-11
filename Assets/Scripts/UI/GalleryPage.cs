@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Collections;
 using TMPro;
+using UnityEngine.EventSystems;
 
 public class GalleryPage : BasePage
 {
@@ -113,7 +114,23 @@ public class GalleryPage : BasePage
             // 添加值改变事件
             categoryToggle.onValueChanged.AddListener((isOn) =>
             {
-                if (isOn) ShowCategory(categoryIndex);
+                if (isOn && EventSystem.current.currentSelectedGameObject != null)
+                {
+                    // 播放切换音效
+                    if (JigsawFun.Audio.AudioManager.Instance != null)
+                    {
+                        AudioClip clickSound = Resources.Load<AudioClip>("Audio/bong_001");
+                        if (clickSound != null)
+                        {
+                            JigsawFun.Audio.AudioManager.Instance.PlayUISound(clickSound);
+                        }
+                        else
+                        {
+                            Debug.LogWarning("无法加载音效: Audio/bong_001.ogg");
+                        }
+                    }
+                    ShowCategory(categoryIndex);
+                }
             });
 
             categoryToggles.Add(categoryToggle);

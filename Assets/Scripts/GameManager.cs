@@ -7,7 +7,6 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    public GameObject BaseCamera;
 
     [Header("Game Settings")]
     public bool debugMode = false;
@@ -171,7 +170,6 @@ public class GameManager : MonoBehaviour
 
         UIManager.Instance.HidePage<GalleryPage>();
         UIManager.Instance.HidePage<DifficultyPage>();
-        BaseCamera.SetActive(false);
     }
 
     #endregion
@@ -246,7 +244,6 @@ public class GameManager : MonoBehaviour
         //Time.timeScale = 1f; // 确保时间缩放恢复正常
         //LoadMainScene();
         SceneManager.UnloadSceneAsync(GAME_SCENE);
-        BaseCamera.SetActive(true);
         UIManager.Instance.ShowPage<GalleryPage>();
         UIManager.Instance.HidePage<GameplayPage>();
     }

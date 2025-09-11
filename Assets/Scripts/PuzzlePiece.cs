@@ -267,7 +267,10 @@ public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         spriteRenderer.color = normalColor;
 
         // 播放吸附音效（如果有的话）
-        AudioSource.PlayClipAtPoint(snapSound, transform.position);
+        if (JigsawFun.Audio.AudioManager.Instance != null && snapSound != null)
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlaySound(snapSound);
+        }
 
         EventDispatcher.Dispatch(EventNames.DESELECT_PIECE, this);
 

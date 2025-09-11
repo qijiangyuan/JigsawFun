@@ -148,10 +148,35 @@ public class PuzzleGameManager : MonoBehaviour
     /// </summary>
     void SetupAudio()
     {
+        // 保留原有的音频设置作为备用
         if (audioSource != null)
         {
             audioSource.playOnAwake = false;
             audioSource.volume = 0.7f;
+        }
+        
+        // 检查是否已存在AudioManager
+        if (JigsawFun.Audio.AudioManager.Instance == null)
+        {
+            // 如果不存在，创建一个AudioManager
+            GameObject audioManagerObj = new GameObject("AudioManager");
+            JigsawFun.Audio.AudioManager audioManager = audioManagerObj.AddComponent<JigsawFun.Audio.AudioManager>();
+            
+            // 设置初始音效
+            if (snapSound != null)
+            {
+                audioManager.AddSoundToGroup("Snap", snapSound);
+            }
+            
+            if (completeSound != null)
+            {
+                audioManager.AddSoundToGroup("Complete", completeSound);
+            }
+            
+            if (errorSound != null)
+            {
+                audioManager.AddSoundToGroup("Error", errorSound);
+            }
         }
     }
     
@@ -321,7 +346,13 @@ public class PuzzleGameManager : MonoBehaviour
     /// </summary>
     public void PlaySound(AudioClip clip)
     {
-        if (audioSource != null && clip != null)
+        // 优先使用AudioManager播放音效
+        if (JigsawFun.Audio.AudioManager.Instance != null && clip != null)
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlaySound(clip);
+        }
+        // 回退到原有的音频处理方式
+        else if (audioSource != null && clip != null)
         {
             audioSource.PlayOneShot(clip);
         }
@@ -332,7 +363,15 @@ public class PuzzleGameManager : MonoBehaviour
     /// </summary>
     public void PlaySnapSound()
     {
-        PlaySound(snapSound);
+        // 优先使用AudioManager播放音效组
+        if (JigsawFun.Audio.AudioManager.Instance != null && JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Snap"))
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Snap");
+        }
+        else
+        {
+            PlaySound(snapSound);
+        }
     }
     
     /// <summary>
@@ -340,7 +379,15 @@ public class PuzzleGameManager : MonoBehaviour
     /// </summary>
     public void PlayCompleteSound()
     {
-        PlaySound(completeSound);
+        // 优先使用AudioManager播放音效组
+        if (JigsawFun.Audio.AudioManager.Instance != null && JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Complete"))
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Complete");
+        }
+        else
+        {
+            PlaySound(completeSound);
+        }
     }
     
     /// <summary>
@@ -348,7 +395,15 @@ public class PuzzleGameManager : MonoBehaviour
     /// </summary>
     public void PlayErrorSound()
     {
-        PlaySound(errorSound);
+        // 优先使用AudioManager播放音效组
+        if (JigsawFun.Audio.AudioManager.Instance != null && JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Error"))
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Error");
+        }
+        else
+        {
+            PlaySound(errorSound);
+        }
     }
     
     /// <summary>
