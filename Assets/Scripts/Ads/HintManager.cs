@@ -74,13 +74,14 @@ namespace JigsawFun.Ads
                 Instance = this;
             }
 
-
+            // 获取PlayPrefsManager实例
+            playPrefsManager = PlayPrefsManager.Instance;
 
             // 初始化免费提示次数
             currentFreeHints = maxFreeHints;
             currentRewardedHints = 0;
 
-            // 从PlayerPrefs加载保存的数据
+            // 从PlayPrefsManager加载保存的数据
             LoadHintData();
         }
 
@@ -224,13 +225,11 @@ namespace JigsawFun.Ads
         /// <summary>
         /// 保存提示数据到PlayerPrefs
         /// </summary>
+        private PlayPrefsManager playPrefsManager;
+
         private void SaveHintData()
         {
-            PlayerPrefs.SetInt("HintManager_FreeHints", currentFreeHints);
-            PlayerPrefs.SetInt("HintManager_RewardedHints", currentRewardedHints);
-            PlayerPrefs.SetFloat("HintManager_LastHintTime", lastHintTime);
-            PlayerPrefs.SetInt("HintManager_IsOnCooldown", isOnCooldown ? 1 : 0);
-            PlayerPrefs.Save();
+            playPrefsManager.SaveHintData(currentFreeHints, currentRewardedHints, lastHintTime, isOnCooldown);
         }
 
         /// <summary>
@@ -238,10 +237,11 @@ namespace JigsawFun.Ads
         /// </summary>
         private void LoadHintData()
         {
-            currentFreeHints = PlayerPrefs.GetInt("HintManager_FreeHints", maxFreeHints);
-            currentRewardedHints = PlayerPrefs.GetInt("HintManager_RewardedHints", 0);
-            lastHintTime = PlayerPrefs.GetFloat("HintManager_LastHintTime", 0f);
-            isOnCooldown = PlayerPrefs.GetInt("HintManager_IsOnCooldown", 0) == 1;
+            var hintData = playPrefsManager.LoadHintData(maxFreeHints);
+            currentFreeHints = hintData.freeHints;
+            currentRewardedHints = hintData.rewardedHints;
+            lastHintTime = hintData.lastHintTime;
+            isOnCooldown = hintData.isOnCooldown;
 
             // 检查是否需要结束冷却
             if (isOnCooldown && Time.time - lastHintTime >= hintCooldownTime)

@@ -14,7 +14,7 @@ public class GameplayPage : BasePage
     public RectTransform puzzleArea;        // 拼图区域
 
     [Header("操作按钮")]
-    public Button resetButton;              // 重置拼图按钮
+    public Button pauseButton;              // 重置拼图按钮
     public Button hintButton;               // 提示原图按钮
     //public Button timerToggleButton;        // 计时器开关按钮
     public Button backButton;               // 返回按钮
@@ -122,8 +122,8 @@ public class GameplayPage : BasePage
     private void InitializeComponents()
     {
         // 设置按钮事件
-        if (resetButton != null)
-            resetButton.onClick.AddListener(OnResetButtonClicked);
+        if (pauseButton != null)
+            pauseButton.onClick.AddListener(OnPauseButtonClicked);
 
         if (hintButton != null)
         {
@@ -305,7 +305,22 @@ public class GameplayPage : BasePage
     /// <summary>
     /// 重置按钮点击事件
     /// </summary>
-    private void OnResetButtonClicked()
+    private void OnPauseButtonClicked()
+    {
+        //暂停
+        // 先使用GameManager返回到Gallery，后面会加一个暂停弹窗
+        if (GameManager.Instance != null)
+        {
+            JigsawGenerator.Instance.ClearPuzzles();
+            GameManager.Instance.ReturnToGallery();
+        }
+        else
+        {
+            Debug.LogError("GameManager实例不存在！");
+        }
+    }
+
+    private void Reset()
     {
         // 重新生成拼图
         GeneratePuzzle();

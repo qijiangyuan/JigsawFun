@@ -27,6 +27,8 @@ public class PuzzleGameManager : MonoBehaviour
     private bool gameInitialized = false;
     private bool gameInProgress = false;
     private int completedLevels = 0; // 已完成关卡数
+    private PlayPrefsManager playPrefsManager;
+    private bool hasSavedState = false; // 是否有保存的状态
     
     public static PuzzleGameManager Instance { get; private set; }
     
@@ -72,8 +74,27 @@ public class PuzzleGameManager : MonoBehaviour
         // 初始化音效
         SetupAudio();
         
+        // 初始化进度管理器
+        playPrefsManager = PlayPrefsManager.Instance;
+        // 加载已完成关卡数
+        completedLevels = playPrefsManager.GetLevelProgress(0) ? 1 : 0;
+        for (int i = 1; playPrefsManager.GetLevelProgress(i); i++)
+        {
+            completedLevels = i + 1;
+        }
+
+        // 检查是否有保存的拼图状态
+        var savedState = playPrefsManager.LoadPuzzleState();
+        hasSavedState = savedState != null;
+        
         gameInitialized = true;
         Debug.Log("拼图游戏初始化完成");
+
+        // 如果有保存的状态，恢复拼图
+        if (hasSavedState)
+        {
+            RestorePuzzleState(savedState);
+        }
     }
     
     /// <summary>
@@ -213,6 +234,86 @@ public class PuzzleGameManager : MonoBehaviour
         {
             DestroyImmediate(piece);
         }
+        // 清除保存的拼图状态
+        playPrefsManager.ClearPuzzleState();
+        hasSavedState = false;
+    }
+
+    /// <summary>
+    /// 保存当前拼图状态
+    /// </summary>
+    public void SavePuzzleState()
+    {
+        if (!gameInProgress) return;
+
+        PuzzlePiece[] pieces = FindObjectsOfType<PuzzlePiece>();
+        if (pieces != null && pieces.Length > 0)
+        {
+            playPrefsManager.SavePuzzleState(puzzleBoard.gridSize, pieces);
+            Debug.Log("[PuzzleGameManager] 已保存拼图状态");
+        }
+    }
+
+    /// <summary>
+    /// 恢复拼图状态
+    /// </summary>
+    private void RestorePuzzleState(PlayPrefsManager.PuzzleStateData stateData)
+    {
+        if (stateData == null) return;
+
+        // 设置拼图板网格大小
+        puzzleBoard.gridSize = stateData.gridSize;
+
+        // 等待一帧确保拼图块已生成
+        StartCoroutine(RestorePuzzleStateCoroutine(stateData));
+    }
+
+    private IEnumerator RestorePuzzleStateCoroutine(PlayPrefsManager.PuzzleStateData stateData)
+    {
+        yield return new WaitForEndOfFrame();
+
+        // 获取所有拼图块
+        PuzzlePiece[] pieces = FindObjectsOfType<PuzzlePiece>();
+        if (pieces.Length != stateData.pieces.Length)
+        {
+            Debug.LogError("[PuzzleGameManager] 拼图块数量不匹配，无法恢复状态");
+            yield break;
+        }
+
+        // 恢复每个拼图块的状态
+        for (int i = 0; i < pieces.Length; i++)
+        {
+            var pieceData = stateData.pieces[i];
+            var piece = pieces[i];
+
+            piece.row = pieceData.row;
+            piece.col = pieceData.col;
+            piece.correctPosition = pieceData.correctPosition;
+            piece.isPlaced = pieceData.isPlaced;
+            piece.transform.position = pieceData.currentPosition;
+        }
+
+        gameInProgress = true;
+        Debug.Log("[PuzzleGameManager] 已恢复拼图状态");
+    }
+
+    /// <summary>
+    /// 在应用退出时保存状态
+    /// </summary>
+    private void OnApplicationQuit()
+    {
+        SavePuzzleState();
+    }
+
+    /// <summary>
+    /// 在应用暂停时保存状态
+    /// </summary>
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            SavePuzzleState();
+        }
     }
     
     /// <summary>
@@ -330,9 +431,8 @@ public class PuzzleGameManager : MonoBehaviour
         // 触发插屏广告逻辑
         TriggerInterstitialAd();
         
-        // 保存完成关卡数
-        PlayerPrefs.SetInt("CompletedLevels", completedLevels);
-        PlayerPrefs.Save();
+        // 保存关卡进度
+        playPrefsManager.SaveLevelProgress(completedLevels, true);
     }
     
     /// <summary>
@@ -373,8 +473,7 @@ public class PuzzleGameManager : MonoBehaviour
     public void ResetLevelProgress()
     {
         completedLevels = 0;
-        PlayerPrefs.SetInt("CompletedLevels", completedLevels);
-        PlayerPrefs.Save();
+        playPrefsManager.ClearAllProgress();
         Debug.Log("[PuzzleGameManager] 关卡进度已重置");
     }
     

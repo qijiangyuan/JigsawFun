@@ -91,7 +91,7 @@ public class LoadingPage : BasePage
         float startTime = Time.time;
 
         // 开始异步加载场景
-        sceneLoad = SceneManager.LoadSceneAsync(targetSceneName);
+        sceneLoad = SceneManager.LoadSceneAsync(targetSceneName, LoadSceneMode.Additive);
         sceneLoad.allowSceneActivation = false; // 先不激活场景
 
         // 更新状态文本
