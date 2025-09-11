@@ -12,21 +12,21 @@ public class DifficultyPage : BasePage
     public Toggle backgroundToggle;         // 背景图片开关
     public Button startButton;              // 开始拼图按钮
     public Button backButton;               // 返回按钮
-    
+
     [Header("UI文本")]
     public Text titleText;                  // 标题文本
     public Text backgroundToggleLabel;      // 背景开关标签
-    
+
     private Sprite selectedImage;           // 当前选中的图片
     private int currentDifficulty = 3;      // 当前难度 (默认3x3)
     private bool showBackground = true;     // 是否显示背景图片
-    
+
     protected override void Awake()
     {
         base.Awake();
         InitializeComponents();
     }
-    
+
     /// <summary>
     /// 初始化组件
     /// </summary>
@@ -41,25 +41,25 @@ public class DifficultyPage : BasePage
             difficultySlider.value = currentDifficulty;
             difficultySlider.onValueChanged.AddListener(OnDifficultyChanged);
         }
-        
+
         // 设置背景开关
         if (backgroundToggle != null)
         {
             backgroundToggle.isOn = showBackground;
             backgroundToggle.onValueChanged.AddListener(OnBackgroundToggleChanged);
         }
-        
+
         // 设置按钮事件
         if (startButton != null)
             startButton.onClick.AddListener(OnStartButtonClicked);
-            
+
         if (backButton != null)
             backButton.onClick.AddListener(OnBackButtonClicked);
-        
+
         // 设置默认文本
         UpdateUI();
     }
-    
+
     /// <summary>
     /// 设置选中的图片
     /// </summary>
@@ -67,7 +67,7 @@ public class DifficultyPage : BasePage
     public void SetSelectedImage(Sprite image)
     {
         selectedImage = image;
-        
+
         if (previewImage != null)
         {
             previewImage.sprite = selectedImage;
@@ -82,7 +82,7 @@ public class DifficultyPage : BasePage
 
         UpdateUI();
     }
-    
+
     /// <summary>
     /// 难度滑块值改变事件
     /// </summary>
@@ -93,18 +93,19 @@ public class DifficultyPage : BasePage
         currentDifficulty = Mathf.RoundToInt(value);
 
         // 网格数量
-        gridImage.material.SetFloat("_GridCount", currentDifficulty);
+        gridImage.materialForRendering.SetFloat("_GridCount", currentDifficulty);
 
         // 线性插值：difficulty=2时为0.004，difficulty=10时为0.001
         float lineWidth = Mathf.Lerp(0.004f, 0.0018f, (currentDifficulty - 2f) / 8f);
-        gridImage.material.SetFloat("_LineWidth", lineWidth);
+        gridImage.materialForRendering.SetFloat("_LineWidth", lineWidth);
+
 
         if (difficultyText != null)
         {
             difficultyText.text = $"{currentDifficulty}x{currentDifficulty}";
         }
     }
-    
+
     /// <summary>
     /// 背景开关改变事件
     /// </summary>
@@ -113,7 +114,7 @@ public class DifficultyPage : BasePage
     {
         showBackground = isOn;
     }
-    
+
     /// <summary>
     /// 开始拼图按钮点击事件
     /// </summary>
@@ -124,7 +125,7 @@ public class DifficultyPage : BasePage
             Debug.LogWarning("没有选中图片！");
             return;
         }
-        
+
         // 使用GameManager启动游戏
         if (GameManager.Instance != null)
         {
@@ -135,7 +136,7 @@ public class DifficultyPage : BasePage
             Debug.LogError("GameManager实例不存在！");
         }
     }
-    
+
     /// <summary>
     /// 更新UI显示
     /// </summary>
@@ -145,7 +146,7 @@ public class DifficultyPage : BasePage
         UpdateDifficultyText();
         UpdateTitleText();
         UpdateLabels();
-        
+
     }
 
     /// <summary>
@@ -155,9 +156,11 @@ public class DifficultyPage : BasePage
     {
         if (gridImage != null && gridImage.material != null)
         {
-            gridImage.material.SetFloat("_GridCount", currentDifficulty);
+            gridImage.materialForRendering.SetFloat("_GridCount", currentDifficulty);
             float lineWidth = Mathf.Lerp(0.004f, 0.0018f, (currentDifficulty - 2f) / 8f);
-            gridImage.material.SetFloat("_LineWidth", lineWidth);
+            gridImage.materialForRendering.SetFloat("_LineWidth", lineWidth);
+
+
         }
     }
 
@@ -171,7 +174,7 @@ public class DifficultyPage : BasePage
             difficultyText.text = $"{currentDifficulty}x{currentDifficulty}";
         }
     }
-    
+
     /// <summary>
     /// 更新标题文本
     /// </summary>
@@ -182,7 +185,7 @@ public class DifficultyPage : BasePage
             titleText.text = "选择难度";
         }
     }
-    
+
     /// <summary>
     /// 更新标签文本
     /// </summary>
@@ -193,7 +196,7 @@ public class DifficultyPage : BasePage
             backgroundToggleLabel.text = "显示背景图片";
         }
     }
-    
+
     ///// <summary>
     ///// 获取当前游戏设置
     ///// </summary>
@@ -207,7 +210,7 @@ public class DifficultyPage : BasePage
     //        showBackground = showBackground
     //    };
     //}
-    
+
     /// <summary>
     /// 重置为默认设置
     /// </summary>
@@ -215,23 +218,23 @@ public class DifficultyPage : BasePage
     {
         currentDifficulty = 3;
         showBackground = true;
-        
+
         if (difficultySlider != null)
             difficultySlider.value = currentDifficulty;
-            
+
         if (backgroundToggle != null)
             backgroundToggle.isOn = showBackground;
-            
+
         UpdateUI();
     }
-    
+
     protected override void OnPageShow()
     {
         base.OnPageShow();
-        
+
         // 确保UI是最新的
         UpdateUI();
-        
+
         //// 如果没有选中图片，禁用开始按钮
         //if (startButton != null)
         //{
@@ -249,7 +252,7 @@ public class DifficultyPage : BasePage
 //    public Sprite selectedImage;    // 选中的图片
 //    public int difficulty;          // 难度 (n×n)
 //    public bool showBackground;     // 是否显示背景图片
-    
+
 //    /// <summary>
 //    /// 获取拼图块总数
 //    /// </summary>
@@ -257,7 +260,7 @@ public class DifficultyPage : BasePage
 //    {
 //        return difficulty * difficulty;
 //    }
-    
+
 //    /// <summary>
 //    /// 获取难度描述
 //    /// </summary>
@@ -266,3 +269,5 @@ public class DifficultyPage : BasePage
 //        return $"{difficulty}×{difficulty}";
 //    }
 //}
+
+

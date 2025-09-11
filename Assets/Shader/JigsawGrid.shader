@@ -7,7 +7,6 @@ Shader "UI/JigsawGrid"
         _LineWidth ("Line Width", Range(0.001,0.05)) = 0.01
         _ToothSize ("Tooth Radius", Range(0.01,0.2)) = 0.05
         _GridCount ("Grid Count (n)", Float) = 2
-        _RenderOnce ("Render Once", Int) = 0
         _AdaptiveStrength ("Adaptive Color Strength", Range(0,1)) = 0.8
         _ContrastThreshold ("Contrast Threshold", Range(0,1)) = 0.3
         
@@ -58,13 +57,16 @@ Shader "UI/JigsawGrid"
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-            float4 _Color;
-            float _LineWidth;
-            float _ToothSize;
-            float _GridCount;
-            int _RenderOnce;
-            float _AdaptiveStrength;
-            float _ContrastThreshold;
+            
+            // 将材质属性放入 UnityPerMaterial CBUFFER，确保在URP+SRP Batcher下按材质正确更新（特别是Android）
+            CBUFFER_START(UnityPerMaterial)
+                float4 _Color;
+                float _LineWidth;
+                float _ToothSize;
+                float _GridCount;
+                float _AdaptiveStrength;
+                float _ContrastThreshold;
+            CBUFFER_END
 
             v2f vert (appdata v)
             {
@@ -187,10 +189,6 @@ Shader "UI/JigsawGrid"
                 float finalDistance = min(lineDistance, circleDistance);
                 float alpha = smoothstep(_LineWidth, 0.0, finalDistance);
                 
-                // 如果启用一次性渲染，直接设置透明度
-                if (_RenderOnce > 0) {
-                    alpha = 0.0; // 直接设置为透明
-                }
                 
                 // 采样背景图片并计算亮度
                 float4 bgColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
