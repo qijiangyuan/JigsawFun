@@ -80,7 +80,7 @@ namespace JigsawFun.Ads
                 
                 Log("开始初始化Unity Services...");
                 // To enable the test suite in your app, call the following before initializing the SDK:
-                LevelPlay.SetMetaData("is_test_suite", "enable");
+                //LevelPlay.SetMetaData("is_test_suite", "enable");
                 // 初始化Unity Services
                 await UnityServices.InitializeAsync();
                 
@@ -103,7 +103,7 @@ namespace JigsawFun.Ads
                 //await LevelPlay.InitializeAsync(levelPlayConfig);
 
                 //After successfully initializing LevelPlay, launch the test suite by calling the following method:
-                LevelPlay.LaunchTestSuite();
+               // LevelPlay.LaunchTestSuite();
 
                 Log("LevelPlay初始化完成，开始初始化广告处理器...");
                 

@@ -37,6 +37,17 @@ public class LoadingPage : BasePage
             statusText = transform.Find("StatusText")?.GetComponent<TextMeshProUGUI>();
         if (puzzleProgressText == null)
             puzzleProgressText = transform.Find("PuzzleProgressText")?.GetComponent<TextMeshProUGUI>();
+
+        SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+    }
+
+    private void SceneManager_sceneLoaded(Scene scene, LoadSceneMode arg1)
+    {
+        if (scene.name == GameManager.JIGSAW_SCENE)
+        {
+            // 设置为激活场景
+            SceneManager.SetActiveScene(scene);
+        }
     }
 
     protected override void OnPageShow()
@@ -81,6 +92,30 @@ public class LoadingPage : BasePage
         isLoading = true;
 
         StartCoroutine(LoadSceneAndPuzzle());
+    }
+
+    public void StartLoadScene(string sceneName, Action onComplete = null)
+    {
+        StartCoroutine(LoadScene(sceneName, onComplete));
+    }
+
+    public IEnumerator LoadScene(string sceneName, Action onComplete = null)
+    {
+        //使用Scene_JigsawGame场景
+        isLoading = true;
+        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        asyncOp.allowSceneActivation = true; // 默认就是 true，可以省略
+                                             // 等待加载完成
+        while (!asyncOp.isDone)
+        {
+            // 可以在这里处理进度条 asyncOp.progress (0~0.9f 之间才更新)
+            yield return null;
+        }
+
+
+
+        // 加载完成后回调
+        onComplete?.Invoke();
     }
 
     /// <summary>

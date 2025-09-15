@@ -49,6 +49,7 @@ public class GameManager : MonoBehaviour
     // 场景名称常量
     public const string MAIN_SCENE = "Main";
     public const string GAME_SCENE = "Game";
+    public const string JIGSAW_SCENE = "Scene_JigsawGame";
 
     private void Awake()
     {
@@ -161,7 +162,13 @@ public class GameManager : MonoBehaviour
         //使用UIManager通用方法
         UIManager.Instance.ShowPage<LoadingPage>(page =>
         {
-            page.StartLoading(GAME_SCENE, () =>
+            //page.StartLoading(GAME_SCENE, () =>
+            //{
+            //    ChangeGameState(GameState.Playing);
+            //    OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
+            //});
+
+            page.StartLoadScene(JIGSAW_SCENE, () =>
             {
                 ChangeGameState(GameState.Playing);
                 OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
@@ -170,6 +177,7 @@ public class GameManager : MonoBehaviour
 
         UIManager.Instance.HidePage<GalleryPage>();
         UIManager.Instance.HidePage<DifficultyPage>();
+        UIManager.Instance.HidePage<LoadingPage>();
     }
 
     #endregion

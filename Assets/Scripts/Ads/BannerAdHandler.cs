@@ -51,10 +51,10 @@ namespace JigsawFun.Ads
             Debug.Log("[BannerAdHandler] 初始化完成");
 
             // 如果设置了自动显示，则立即加载Banner
-            if (autoShow)
-            {
-                LoadBanner();
-            }
+            //if (autoShow)
+            //{
+            //    LoadBanner();
+            //}
         }
 
         /// <summary>

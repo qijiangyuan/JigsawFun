@@ -398,7 +398,7 @@ public class GameplayPage : BasePage
         if (AdManager.Instance != null)
         {
             // 显示Banner广告
-            //AdManager.Instance.ShowBannerAd();
+            AdManager.Instance.BannerHandler.ShowBanner();
 
             // 订阅提示奖励事件
             if (hintManager != null)

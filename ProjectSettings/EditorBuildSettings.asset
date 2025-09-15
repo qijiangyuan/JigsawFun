@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Main.unity
     guid: 978d41149ba25ea4599aa4fea58d9cb9
   - enabled: 1
+    path: Assets/Scenes/Scene_JigsawGame.unity
+    guid: 47240898ceaf37c4590780dc9f434fb6
+  - enabled: 1
     path: Assets/Scenes/Game.unity
     guid: ff07218974344bd448a0069f6527f2b8
   m_configObjects: {}
