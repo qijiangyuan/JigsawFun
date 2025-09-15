@@ -11,6 +11,12 @@ public class GameManager : MonoBehaviour
     [Header("Game Settings")]
     public bool debugMode = false;
 
+    public bool TileMovementEnabled { get; set; } = false;
+
+    public int TotalTilesInCorrectPosition = 0;
+
+    public int SecondsSinceStart = 0;
+
     // 游戏状态
     public enum GameState
     {
@@ -172,14 +178,12 @@ public class GameManager : MonoBehaviour
             {
                 Debug.Log("JIGSAW_SCENE 加载成功");
                 ChangeGameState(GameState.Playing);
-                UIManager.Instance.ShowPage<GameplayPage>();
                 OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
             });
         });
 
         UIManager.Instance.HidePage<GalleryPage>();
         UIManager.Instance.HidePage<DifficultyPage>();
-        UIManager.Instance.HidePage<LoadingPage>();
     }
 
     #endregion

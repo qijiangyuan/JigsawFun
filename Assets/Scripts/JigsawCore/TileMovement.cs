@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class TileMovement : MonoBehaviour
+public class TileMovement : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
 {
     public Tile tile { get; set; }
     private Vector3 mOffset = new Vector3(0.0f, 0.0f, 0.0f);
@@ -26,7 +26,7 @@ public class TileMovement : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (!GameApp.Instance.TileMovementEnabled) return;
+        //if (!GameManager.Instance.TileMovementEnabled) return;
         if (EventSystem.current.IsPointerOverGameObject())
         {
             return;
@@ -41,7 +41,7 @@ public class TileMovement : MonoBehaviour
 
     private void OnMouseDrag()
     {
-        if (!GameApp.Instance.TileMovementEnabled) return;
+        //if (!GameManager.Instance.TileMovementEnabled) return;
         if (EventSystem.current.IsPointerOverGameObject())
         {
             return;
@@ -54,7 +54,7 @@ public class TileMovement : MonoBehaviour
 
     private void OnMouseUp()
     {
-        if (!GameApp.Instance.TileMovementEnabled) return;
+        //if (!GameManager.Instance.TileMovementEnabled) return;
         if (EventSystem.current.IsPointerOverGameObject())
         {
             return;
@@ -79,5 +79,54 @@ public class TileMovement : MonoBehaviour
     void Update()
     {
 
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        Debug.Log("按下");
+        if (!GameManager.Instance.TileMovementEnabled) return;
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
+        mOffset = transform.position - Camera.main.ScreenToWorldPoint(
+          new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0.0f));
+
+        // For sorting of tiles.
+        Tile.tilesSorting.BringToTop(mSpriteRenderer);
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        Debug.Log("拖拽中");
+        //transform.position = eventData.position; // 简单移动到鼠标/手指位置
+        if (!GameManager.Instance.TileMovementEnabled) return;
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
+        Vector3 curScreenPoint = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0.0f);
+        Vector3 curPosition = Camera.main.ScreenToWorldPoint(curScreenPoint) + mOffset;
+        transform.position = curPosition;
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        Debug.Log("松开");
+        if (!GameManager.Instance.TileMovementEnabled) return;
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+        float dist = (transform.position - GetCorrectPosition()).magnitude;
+        // 贴合阈值按 tileSize 缩放（例如 20% 的边长），兼容不同 n/tileSize
+        float snapThreshold = Mathf.Max(4f, Tile.tileSize * 0.2f);
+        if (dist < snapThreshold)
+        {
+            transform.position = GetCorrectPosition();
+            onTileInPlace?.Invoke(this);
+        }
     }
 }

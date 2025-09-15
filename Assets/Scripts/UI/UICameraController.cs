@@ -14,8 +14,8 @@ public class UICameraController : MonoBehaviour
         // 初始进入 Main 场景 → UICamera 必须能独立渲染
         SetAsBase();
 
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        SceneManager.sceneUnloaded += OnSceneUnloaded;
+        //SceneManager.sceneLoaded += OnSceneLoaded;
+        //SceneManager.sceneUnloaded += OnSceneUnloaded;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)

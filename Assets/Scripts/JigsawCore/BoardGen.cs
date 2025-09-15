@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using static GameManager;
 
-public class BoardGen : Singleton<BoardGen>
+public class BoardGen : MonoBehaviour
 {
     [Range(2, 50)] public int initialN = 5; // Inspector 可配置的默认 n
     private int mN; // 当前使用的 n
@@ -379,7 +379,6 @@ public class BoardGen : Singleton<BoardGen>
 
 
         //发出拼图生成好了的事件
-        Debug.LogError("发出拼图生成好了的事件");
         EventDispatcher.Dispatch(EventNames.PUZZLE_GENERATEION_DONE);
     }
 
@@ -554,7 +553,7 @@ public class BoardGen : Singleton<BoardGen>
 
         menu.SetEnableBottomPanel(false);
         StartCoroutine(Coroutine_CallAfterDelay(() => menu.SetEnableTopPanel(true), 1.0f));
-        GameApp.Instance.TileMovementEnabled = true;
+        GameManager.Instance.TileMovementEnabled = true;
 
         StartTimer();
 
@@ -589,9 +588,9 @@ public class BoardGen : Singleton<BoardGen>
         while (true)
         {
             yield return new WaitForSeconds(1.0f);
-            GameApp.Instance.SecondsSinceStart += 1;
+            GameManager.Instance.SecondsSinceStart += 1;
 
-            menu.SetTimeInSeconds(GameApp.Instance.SecondsSinceStart);
+            menu.SetTimeInSeconds(GameManager.Instance.SecondsSinceStart);
         }
     }
 
@@ -629,7 +628,7 @@ public class BoardGen : Singleton<BoardGen>
         StopAllCoroutines();
         activeCoroutines.Clear();
 
-        GameApp.Instance.TileMovementEnabled = false;
+        GameManager.Instance.TileMovementEnabled = false;
 
         // 销毁旧的瓦片对象与纹理
         if (mTileGameObjects != null)
@@ -694,8 +693,8 @@ public class BoardGen : Singleton<BoardGen>
         // 更新相机与 UI
         SetCameraPosition();
 
-        GameApp.Instance.SecondsSinceStart = 0;
-        GameApp.Instance.TotalTilesInCorrectPosition = 0;
+        GameManager.Instance.SecondsSinceStart = 0;
+        GameManager.Instance.TotalTilesInCorrectPosition = 0;
         menu.SetEnableTopPanel(false);
         menu.SetEnableBottomPanel(false);
         menu.SetTilesInPlace(0);
@@ -725,7 +724,7 @@ public class BoardGen : Singleton<BoardGen>
     }
     void OnTileInPlace(TileMovement tm)
     {
-        GameApp.Instance.TotalTilesInCorrectPosition += 1;
+        GameManager.Instance.TotalTilesInCorrectPosition += 1;
 
         tm.enabled = false;
         Destroy(tm);
@@ -733,16 +732,16 @@ public class BoardGen : Singleton<BoardGen>
         SpriteRenderer spriteRenderer = tm.gameObject.GetComponent<SpriteRenderer>();
         Tile.tilesSorting.Remove(spriteRenderer);
 
-        if (GameApp.Instance.TotalTilesInCorrectPosition == mTileGameObjects.Length)
+        if (GameManager.Instance.TotalTilesInCorrectPosition == mTileGameObjects.Length)
         {
             //Debug.Log("Game completed. We will implement an end screen later");
             menu.SetEnableTopPanel(false);
             menu.SetEnableGameCompletionPanel(true);
 
             // Reset the values.
-            GameApp.Instance.SecondsSinceStart = 0;
-            GameApp.Instance.TotalTilesInCorrectPosition = 0;
+            GameManager.Instance.SecondsSinceStart = 0;
+            GameManager.Instance.TotalTilesInCorrectPosition = 0;
         }
-        menu.SetTilesInPlace(GameApp.Instance.TotalTilesInCorrectPosition);
+        menu.SetTilesInPlace(GameManager.Instance.TotalTilesInCorrectPosition);
     }
 }

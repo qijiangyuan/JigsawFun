@@ -94,7 +94,12 @@ public class LoadingPage : BasePage
     {
         //使用Scene_JigsawGame场景
         isLoading = true;
-        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName);
+        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        if (asyncOp == null)
+        {
+            Debug.LogError("LoadSceneAsync 返回 null! 检查 Build Settings 和场景名字");
+            yield break;
+        }
         asyncOp.allowSceneActivation = false; // 默认就是 true，可以省略
                                              // 等待加载完成
         while (!asyncOp.isDone)
@@ -111,16 +116,19 @@ public class LoadingPage : BasePage
 
 
 
-        Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        if (loadedScene.IsValid())
-        {
-            SceneManager.SetActiveScene(loadedScene);
-        }
+        //Scene loadedScene = SceneManager.GetSceneByName(sceneName);
+        //if (loadedScene.IsValid())
+        //{
+        //    SceneManager.SetActiveScene(loadedScene);
+        //}
 
         Debug.Log("加载完成: " + sceneName);
 
         // 加载完成后回调
         onComplete?.Invoke();
+        // 隐藏加载页面
+        isLoading = false;
+        HidePage();
     }
 
     /// <summary>

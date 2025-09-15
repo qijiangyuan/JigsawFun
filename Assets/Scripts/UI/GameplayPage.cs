@@ -176,10 +176,14 @@ public class GameplayPage : BasePage
 
     private void OnStartButtonClicked()
     {
-        if (BoardGen.Instance != null)
+        BoardGen boardGen = FindObjectOfType<BoardGen>();
+
+        if (boardGen != null)
         {
-            BoardGen.Instance.ShuffleTiles();
+            boardGen.ShuffleTiles();
         }
+
+        startButton?.gameObject.SetActive(false);
     }
 
     /// <summary>

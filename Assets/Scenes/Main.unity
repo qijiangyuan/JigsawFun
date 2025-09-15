@@ -3526,6 +3526,7 @@ MonoBehaviour:
   pauseButton: {fileID: 1690818871}
   hintButton: {fileID: 1248585363}
   backButton: {fileID: 0}
+  startButton: {fileID: 2147368484}
   timerText: {fileID: 1730886505}
   difficultyText: {fileID: 0}
   progressText: {fileID: 0}
