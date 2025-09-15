@@ -18,6 +18,7 @@ public class GameplayPage : BasePage
     public Button hintButton;               // 提示原图按钮
     //public Button timerToggleButton;        // 计时器开关按钮
     public Button backButton;               // 返回按钮
+    public Button startButton;              // 开始按钮
 
     [Header("UI显示")]
     public TextMeshProUGUI timerText;                  // 计时器文本
@@ -90,6 +91,7 @@ public class GameplayPage : BasePage
         EventDispatcher.AddListener<PuzzlePiece>(EventNames.SELECT_PIECE, OnSelectPiece);
         EventDispatcher.AddListener<PuzzlePiece>(EventNames.DESELECT_PIECE, OnDeselectPiece);
         EventDispatcher.AddListener(EventNames.PUZZLE_COMPLETED, OnPuzzleCompleted);
+        EventDispatcher.AddListener(EventNames.PUZZLE_GENERATEION_DONE, OnPuzzleGenerationDone);
     }
 
     //取消订阅拼图事件
@@ -98,6 +100,12 @@ public class GameplayPage : BasePage
         EventDispatcher.RemoveListener<PuzzlePiece>(EventNames.SELECT_PIECE, OnSelectPiece);
         EventDispatcher.RemoveListener<PuzzlePiece>(EventNames.DESELECT_PIECE, OnDeselectPiece);
         EventDispatcher.RemoveListener(EventNames.PUZZLE_COMPLETED, OnPuzzleCompleted);
+        EventDispatcher.RemoveListener(EventNames.PUZZLE_GENERATEION_DONE, OnPuzzleGenerationDone);
+    }
+
+    private void OnPuzzleGenerationDone()
+    {
+        startButton?.gameObject.SetActive(true);
     }
 
     private void OnSelectPiece(PuzzlePiece puzzlePiece)
@@ -136,6 +144,12 @@ public class GameplayPage : BasePage
             watchAdButton.onClick.AddListener(OnWatchAdButtonClicked);
         }
 
+        if (startButton != null)
+        {
+            startButton.onClick.AddListener(OnStartButtonClicked);
+            startButton.gameObject.SetActive(false); // 初始隐藏提示按钮
+        }
+
 
 
         //if (timerToggleButton != null)
@@ -158,6 +172,14 @@ public class GameplayPage : BasePage
         //{
         //    hintOverlay.gameObject.SetActive(false);
         //}
+    }
+
+    private void OnStartButtonClicked()
+    {
+        if (BoardGen.Instance != null)
+        {
+            BoardGen.Instance.ShuffleTiles();
+        }
     }
 
     /// <summary>

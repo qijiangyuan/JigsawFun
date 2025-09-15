@@ -1,3 +1,4 @@
+using Patterns;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using static GameManager;
 
-public class BoardGen : MonoBehaviour
+public class BoardGen : Singleton<BoardGen>
 {
     [Range(2, 50)] public int initialN = 5; // Inspector 可配置的默认 n
     private int mN; // 当前使用的 n
@@ -246,9 +247,32 @@ public class BoardGen : MonoBehaviour
 
         Camera.main.transform.position = new Vector3(cx, cy, -10.0f);
 
-        // 视野设置保守放大，确保整张底图在视野内
-        int smaller_value = Mathf.Min(mBaseSpriteOpaque.texture.width, mBaseSpriteOpaque.texture.height);
-        Camera.main.orthographicSize = smaller_value * 0.8f;
+        // 计算需要包含拼图盘和周围散布区域的视野大小
+        // 拼图盘尺寸
+        float puzzleBoardWidth = mBaseSpriteOpaque.texture.width;
+        float puzzleBoardHeight = mBaseSpriteOpaque.texture.height;
+        
+        // 洗牌区域的范围（参考Shuffle方法中的regions定义）
+        // 左侧区域: x从-300到-250, 右侧区域: x从(numTileX+1)*tileSize到(numTileX+1)*tileSize+50
+        float leftRegionWidth = 300f; // 左侧散布区域宽度
+        float rightRegionWidth = 350f; // 右侧散布区域宽度（包含一些额外边距）
+        float verticalMargin = 200f; // 上下额外边距
+        
+        // 计算总的需要包含的区域
+        float totalWidth = leftRegionWidth + puzzleBoardWidth + rightRegionWidth;
+        float totalHeight = puzzleBoardHeight + verticalMargin;
+        
+        // 根据屏幕宽高比选择合适的正交大小
+        float aspectRatio = (float)Screen.width / Screen.height;
+        float requiredSizeForWidth = totalWidth / (2.0f * aspectRatio);
+        float requiredSizeForHeight = totalHeight / 2.0f;
+        
+        // 选择较大的值以确保所有内容都在视野内，并添加额外的安全边距
+        float cameraSize = Mathf.Max(requiredSizeForWidth, requiredSizeForHeight) * 1.1f;
+        
+        Camera.main.orthographicSize = cameraSize;
+        
+        Debug.Log($"摄像机设置: 拼图盘({puzzleBoardWidth}x{puzzleBoardHeight}), 总视野({totalWidth}x{totalHeight}), 正交大小={cameraSize}");
     }
 
     public static GameObject CreateGameObjectFromTile(Tile tile)
@@ -353,6 +377,10 @@ public class BoardGen : MonoBehaviour
         menu.SetEnableBottomPanel(true);
         menu.btnPlayOnClick = ShuffleTiles;
 
+
+        //发出拼图生成好了的事件
+        Debug.LogError("发出拼图生成好了的事件");
+        EventDispatcher.Dispatch(EventNames.PUZZLE_GENERATEION_DONE);
     }
 
 

@@ -170,7 +170,9 @@ public class GameManager : MonoBehaviour
 
             page.StartLoadScene(JIGSAW_SCENE, () =>
             {
+                Debug.Log("JIGSAW_SCENE 加载成功");
                 ChangeGameState(GameState.Playing);
+                UIManager.Instance.ShowPage<GameplayPage>();
                 OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
             });
         });
