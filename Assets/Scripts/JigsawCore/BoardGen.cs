@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using static GameManager;
 
 public class BoardGen : MonoBehaviour
@@ -34,6 +35,27 @@ public class BoardGen : MonoBehaviour
     public Menu menu = null;
     private List<Rect> regions = new List<Rect>();
     private List<Coroutine> activeCoroutines = new List<Coroutine>();
+
+    // 相机交互参数（可在 Inspector 中配置）
+    [Header("相机缩放与拖拽")]
+    [Tooltip("最小正交尺寸（越小越近）")]
+    public float minOrthoSize = 5f;
+    [Tooltip("最大正交尺寸（越大越远）")]
+    public float maxOrthoSize = 200f;
+    [Tooltip("鼠标滚轮缩放速度（编辑器/PC）")]
+    public float zoomSpeedMouse = 5f;
+    [Tooltip("双指捏合缩放速度（移动端），以每像素距离变化对应的缩放量")]
+    public float zoomSpeedTouch = 0.01f;
+    [Tooltip("拖拽摄像机灵敏度（值越大相机移动越快）")]
+    public float panSpeed = 1f;
+
+    // 运行时状态
+    private bool isPanning = false;
+    private bool pinching = false;
+    private bool panDisabledDueToTile = false; // 起手点在 TileMovement 上则禁用拖拽
+    private Vector3 lastPanWorldPos;
+    // 平移微抖阈值，避免极小抖动
+    private const float panEpsilon = 1e-4f;
 
     /// <summary>
     /// 加载源纹理，按左下对齐裁剪到可整除的 n*n 区域，并添加 padding，生成用于拼图的底图精灵：
@@ -146,6 +168,21 @@ public class BoardGen : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+
+    }
+
+    private void Awake()
+    {
+        EventDispatcher.AddListener(EventNames.PUZZLE_GENERATEION_START, StartGame);
+    }
+
+    private void OnDestroy()
+    {
+        EventDispatcher.RemoveListener(EventNames.PUZZLE_GENERATEION_START, StartGame);
+    }
+
+    public void StartGame()
+    {
         if (GameManager.Instance == null)
         {
             //默认测试
@@ -183,8 +220,6 @@ public class BoardGen : MonoBehaviour
         // Create the Jigsaw tiles.
         StartCoroutine(Coroutine_CreateJigsawTiles());
     }
-
-
 
     /// <summary>
     /// 基于不透明底图生成“透明视图”（中间区域降低 alpha，四周边框保持原始像素），
@@ -251,27 +286,27 @@ public class BoardGen : MonoBehaviour
         // 拼图盘尺寸
         float puzzleBoardWidth = mBaseSpriteOpaque.texture.width;
         float puzzleBoardHeight = mBaseSpriteOpaque.texture.height;
-        
+
         // 洗牌区域的范围（参考Shuffle方法中的regions定义）
         // 左侧区域: x从-300到-250, 右侧区域: x从(numTileX+1)*tileSize到(numTileX+1)*tileSize+50
         float leftRegionWidth = 300f; // 左侧散布区域宽度
         float rightRegionWidth = 350f; // 右侧散布区域宽度（包含一些额外边距）
         float verticalMargin = 200f; // 上下额外边距
-        
+
         // 计算总的需要包含的区域
         float totalWidth = leftRegionWidth + puzzleBoardWidth + rightRegionWidth;
         float totalHeight = puzzleBoardHeight + verticalMargin;
-        
+
         // 根据屏幕宽高比选择合适的正交大小
         float aspectRatio = (float)Screen.width / Screen.height;
         float requiredSizeForWidth = totalWidth / (2.0f * aspectRatio);
         float requiredSizeForHeight = totalHeight / 2.0f;
-        
+
         // 选择较大的值以确保所有内容都在视野内，并添加额外的安全边距
         float cameraSize = Mathf.Max(requiredSizeForWidth, requiredSizeForHeight) * 1.1f;
-        
+
         Camera.main.orthographicSize = cameraSize;
-        
+
         Debug.Log($"摄像机设置: 拼图盘({puzzleBoardWidth}x{puzzleBoardHeight}), 总视野({totalWidth}x{totalHeight}), 正交大小={cameraSize}");
     }
 
@@ -460,10 +495,168 @@ public class BoardGen : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // 相机缩放与拖拽输入处理（支持触摸/鼠标）
+        HandleCameraInput();
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             HandleNextTile();
         }
+    }
+
+    /// <summary>
+    /// 统一处理相机输入：
+    /// - 触摸：双指捏合缩放；单指在非 TileMovement 处按下并拖动可平移相机。
+    /// - 编辑器/PC：鼠标滚轮缩放；左键在非 TileMovement 处按住拖动可平移相机。
+    /// - 缩放范围由 minOrthoSize/maxOrthoSize 限制。
+    /// </summary>
+    private void HandleCameraInput()
+    {
+        if (Camera.main == null) return;
+
+        // 触摸优先
+        if (Input.touchCount >= 2)
+        {
+            pinching = true;
+            isPanning = false; // 捏合时不平移
+
+            Touch t0 = Input.GetTouch(0);
+            Touch t1 = Input.GetTouch(1);
+
+            Vector2 prevPos0 = t0.position - t0.deltaPosition;
+            Vector2 prevPos1 = t1.position - t1.deltaPosition;
+
+            float prevDist = Vector2.Distance(prevPos0, prevPos1);
+            float currDist = Vector2.Distance(t0.position, t1.position);
+            float delta = currDist - prevDist; // 手指拉开为正、合拢为负
+
+            // 手指拉开（delta>0）应“放大”视图 => 降低正交尺寸；因此缩放量取负号
+            ApplyZoom(-delta * zoomSpeedTouch);
+            return;
+        }
+        else if (Input.touchCount == 1)
+        {
+            Touch t = Input.GetTouch(0);
+
+            if (t.phase == TouchPhase.Began)
+            {
+                panDisabledDueToTile = IsPointerOverAnyTileMovementAtScreenPosition(t.position);
+                if (!panDisabledDueToTile)
+                {
+                    isPanning = true;
+                    lastPanWorldPos = ScreenToWorld(t.position);
+                }
+            }
+            else if (t.phase == TouchPhase.Moved && isPanning && !panDisabledDueToTile)
+            {
+                Vector3 curWorld = ScreenToWorld(t.position);
+                Vector3 delta = lastPanWorldPos - curWorld; // 保持起始世界点不动
+                delta.z = 0f;
+                if (delta.sqrMagnitude > panEpsilon)
+                {
+                    Camera.main.transform.position += delta * panSpeed;
+                    // 重要：移动相机后，需基于“新相机位置”重新计算指针的世界坐标，避免来回抽动
+                    lastPanWorldPos = ScreenToWorld(t.position);
+                }
+            }
+            else if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
+            {
+                isPanning = false;
+                panDisabledDueToTile = false;
+                pinching = false;
+            }
+
+            return;
+        }
+        else
+        {
+            // 无触摸
+            pinching = false;
+            isPanning = Input.GetMouseButton(0) && isPanning; // 保持拖拽状态仅在按住时
+        }
+
+        // 编辑器/PC：鼠标滚轮缩放（不屏蔽 UI，满足“只要不是 TileMovement”即可）
+        float scroll = Input.mouseScrollDelta.y;
+        if (Mathf.Abs(scroll) > 0.01f)
+        {
+            ApplyZoom(-scroll * zoomSpeedMouse);
+        }
+
+        // 编辑器/PC：左键拖拽平移（起手点不在 TileMovement 上）
+        if (Input.GetMouseButtonDown(0))
+        {
+            panDisabledDueToTile = IsPointerOverAnyTileMovementAtScreenPosition(Input.mousePosition);
+            if (!panDisabledDueToTile)
+            {
+                isPanning = true;
+                lastPanWorldPos = ScreenToWorld(Input.mousePosition);
+            }
+            else
+            {
+                isPanning = false;
+            }
+        }
+        else if (Input.GetMouseButton(0) && isPanning && !panDisabledDueToTile)
+        {
+            Vector3 curWorld = ScreenToWorld(Input.mousePosition);
+            Vector3 delta = lastPanWorldPos - curWorld;
+            delta.z = 0f;
+
+            if (delta.sqrMagnitude > panEpsilon)
+            {
+                Camera.main.transform.position += delta * panSpeed;
+                // 重要：移动相机后，需基于“新相机位置”重新计算指针的世界坐标，避免来回抽动
+                lastPanWorldPos = ScreenToWorld(Input.mousePosition);
+            }
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            isPanning = false;
+            panDisabledDueToTile = false;
+        }
+    }
+
+    /// <summary>
+    /// 应用缩放并按设定范围进行钳制。
+    /// 正值 delta 表示远离（增大正交尺寸），负值表示靠近（减小正交尺寸）。
+    /// </summary>
+    private void ApplyZoom(float delta)
+    {
+        if (Camera.main == null) return;
+        float lo = Mathf.Min(minOrthoSize, maxOrthoSize);
+        float hi = Mathf.Max(minOrthoSize, maxOrthoSize);
+        float size = Camera.main.orthographicSize;
+        float newSize = Mathf.Clamp(size + delta, lo, hi);
+        Camera.main.orthographicSize = newSize;
+    }
+
+    /// <summary>
+    /// 屏幕坐标是否命中带有 TileMovement 的拼图块（用于决定是否允许拖拽相机）。
+    /// </summary>
+    private bool IsPointerOverAnyTileMovementAtScreenPosition(Vector3 screenPos)
+    {
+        Vector3 world = ScreenToWorld(screenPos);
+        // 可能有多个重叠碰撞体，取全部以保证检测完整
+        Collider2D[] hits = Physics2D.OverlapPointAll((Vector2)world);
+        if (hits == null || hits.Length == 0) return false;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i] != null && hits[i].GetComponent<TileMovement>() != null)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 将屏幕坐标转换为世界坐标（固定使用主摄像机）。
+    /// </summary>
+    private Vector3 ScreenToWorld(Vector3 screenPos)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return Vector3.zero;
+        Vector3 wp = cam.ScreenToWorldPoint(screenPos);
+        wp.z = 0f; // 2D 平面
+        return wp;
     }
 
     private void HandleNextTile()

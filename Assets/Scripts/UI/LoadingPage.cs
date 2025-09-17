@@ -101,12 +101,13 @@ public class LoadingPage : BasePage
             yield break;
         }
         asyncOp.allowSceneActivation = false; // 默认就是 true，可以省略
-                                             // 等待加载完成
+                                              // 等待加载完成
         while (!asyncOp.isDone)
         {
             // 可以在这里处理进度条 asyncOp.progress (0~0.9f 之间才更新)
             Debug.Log($"Loading {sceneName}... {asyncOp.progress}");
-
+            progressText.text = asyncOp.progress * 100 + "%";
+            progressBar.value = asyncOp.progress;
             if (asyncOp.progress >= 0.9f)
             {
                 asyncOp.allowSceneActivation = true;
@@ -116,11 +117,11 @@ public class LoadingPage : BasePage
 
 
 
-        //Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        //if (loadedScene.IsValid())
-        //{
-        //    SceneManager.SetActiveScene(loadedScene);
-        //}
+        Scene loadedScene = SceneManager.GetSceneByName(sceneName);
+        if (loadedScene.IsValid())
+        {
+            SceneManager.SetActiveScene(loadedScene);
+        }
 
         Debug.Log("加载完成: " + sceneName);
 

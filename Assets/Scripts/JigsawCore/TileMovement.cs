@@ -67,6 +67,7 @@ public class TileMovement : MonoBehaviour, IPointerDownHandler, IPointerUpHandle
             transform.position = GetCorrectPosition();
             onTileInPlace?.Invoke(this);
         }
+        Physics2D.SyncTransforms();
     }
 
     public void SnapToCorretPosition()

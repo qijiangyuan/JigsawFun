@@ -17,6 +17,8 @@ public class GameManager : MonoBehaviour
 
     public int SecondsSinceStart = 0;
 
+    public Camera MainCamera;
+
     // 游戏状态
     public enum GameState
     {
@@ -64,6 +66,7 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(MainCamera);
             InitializeGame();
         }
         else
@@ -178,6 +181,7 @@ public class GameManager : MonoBehaviour
             {
                 Debug.Log("JIGSAW_SCENE 加载成功");
                 ChangeGameState(GameState.Playing);
+                EventDispatcher.Dispatch(EventNames.PUZZLE_GENERATEION_START);
                 OnGameStarted?.Invoke(currentGameData.selectedImage, currentGameData.difficulty);
             });
         });

@@ -86,4 +86,5 @@ public class EventNames
     public static readonly string DESELECT_PIECE = "DESELECT_PIECE";
     public static readonly string PUZZLE_COMPLETED = "PUZZLE_COMPLETED";
     public static readonly string PUZZLE_GENERATEION_DONE = "PUZZLE_GENERATEION_DONE";
+    public static readonly string PUZZLE_GENERATEION_START = "PUZZLE_GENERATEION_START";
 }
