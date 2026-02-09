@@ -52,6 +52,20 @@ public class TileMovement : MonoBehaviour, IPointerDownHandler, IPointerUpHandle
         transform.position = curPosition;
     }
 
+    public bool CheckAndSnap()
+    {
+        float dist = (transform.position - GetCorrectPosition()).magnitude;
+        float snapThreshold = Mathf.Max(4f, Tile.tileSize * 0.2f);
+        if (dist < snapThreshold)
+        {
+            transform.position = GetCorrectPosition();
+            onTileInPlace?.Invoke(this);
+            Physics2D.SyncTransforms();
+            return true;
+        }
+        return false;
+    }
+
     private void OnMouseUp()
     {
         //if (!GameManager.Instance.TileMovementEnabled) return;

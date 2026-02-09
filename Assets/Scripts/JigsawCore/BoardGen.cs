@@ -585,7 +585,11 @@ public class BoardGen : MonoBehaviour
         // 编辑器/PC：左键拖拽平移（起手点不在 TileMovement 上）
         if (Input.GetMouseButtonDown(0))
         {
-            panDisabledDueToTile = IsPointerOverAnyTileMovementAtScreenPosition(Input.mousePosition);
+            // 检查是否点击在 UI 上
+            bool isOverUI = UnityEngine.EventSystems.EventSystem.current != null && 
+                           UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+
+            panDisabledDueToTile = isOverUI || IsPointerOverAnyTileMovementAtScreenPosition(Input.mousePosition);
             if (!panDisabledDueToTile)
             {
                 isPanning = true;
@@ -696,40 +700,73 @@ public class BoardGen : MonoBehaviour
         objectToMove.transform.position = end;
     }
 
-    void Shuffle(GameObject obj)
-    {
-        if (regions.Count == 0)
-        {
-            regions.Add(new Rect(-300.0f, -100.0f, 50.0f, numTileY * Tile.tileSize));
-            regions.Add(new Rect((numTileX + 1) * Tile.tileSize, -100.0f, 50.0f, numTileY * Tile.tileSize));
-        }
+    // 排列参数
+    private const float shuffleGap = 10f; // 拼图块之间的间隙
+    private const int columnsPerSide = 3; // 每一侧的列数（可根据需要调整）
 
-        int regionIndex = UnityEngine.Random.Range(0, regions.Count);
-        float x = UnityEngine.Random.Range(regions[regionIndex].xMin, regions[regionIndex].xMax);
-        float y = UnityEngine.Random.Range(regions[regionIndex].yMin, regions[regionIndex].yMax);
-
-        Vector3 pos = new Vector3(x, y, 0.0f);
-        Coroutine moveCoroutine = StartCoroutine(Coroutine_MoveOverSeconds(obj, pos, 1.0f));
-        activeCoroutines.Add(moveCoroutine);
-    }
+    //void Shuffle(GameObject obj, Vector3 targetPos)
+    //{
+    //    Coroutine moveCoroutine = StartCoroutine(Coroutine_MoveOverSeconds(obj, targetPos, 1.0f));
+    //    activeCoroutines.Add(moveCoroutine);
+    //}
 
     IEnumerator Coroutine_Shuffle()
     {
+        // 1. 收集所有拼图块
+        List<GameObject> allTiles = new List<GameObject>();
         for (int i = 0; i < numTileX; ++i)
         {
             for (int j = 0; j < numTileY; ++j)
             {
-                Shuffle(mTileGameObjects[i, j]);
-                yield return null;
+                allTiles.Add(mTileGameObjects[i, j]);
             }
         }
 
-        foreach (var item in activeCoroutines)
+        // 2. 打乱列表顺序（可选，如果希望排列是乱序的）
+        // 如果希望按顺序排列（比如左上角第一块放在第一个位置），则不需要打乱
+        // 为了增加趣味性，我们还是打乱一下
+        for (int i = 0; i < allTiles.Count; i++)
         {
-            if (item != null)
-            {
-                yield return null;
-            }
+            GameObject temp = allTiles[i];
+            int randomIndex = UnityEngine.Random.Range(i, allTiles.Count);
+            allTiles[i] = allTiles[randomIndex];
+            allTiles[randomIndex] = temp;
+        }
+
+        // 3. 计算排列参数
+        // 拼图板尺寸
+        float puzzleBoardWidth = mBaseSpriteOpaque.texture.width;
+        //float puzzleBoardHeight = mBaseSpriteOpaque.texture.height;
+        float halfBoardWidth = puzzleBoardWidth * 0.5f;
+
+
+
+        // 4. 分配位置
+        // 改为使用 UI Scroll Tray
+        PuzzleScrollTray scrollTray = FindObjectOfType<PuzzleScrollTray>();
+        if (scrollTray == null)
+        {
+            // 如果场景中没有 Tray，创建一个
+            GameObject trayObj = new GameObject("PuzzleScrollTray", typeof(RectTransform));
+            trayObj.transform.SetParent(GameObject.Find("Canvas")?.transform ?? FindObjectOfType<Canvas>()?.transform, false);
+            
+            // 确保 Tray 填满屏幕（或者至少在底部正确位置）
+            RectTransform trayRect = trayObj.GetComponent<RectTransform>();
+            trayRect.anchorMin = Vector2.zero;
+            trayRect.anchorMax = Vector2.one;
+            trayRect.offsetMin = Vector2.zero;
+            trayRect.offsetMax = Vector2.zero;
+            
+            scrollTray = trayObj.AddComponent<PuzzleScrollTray>();
+            scrollTray.Initialize();
+        }
+        
+        scrollTray.Clear();
+
+        for (int i = 0; i < allTiles.Count; i++)
+        {
+            scrollTray.AddPiece(allTiles[i]);
+            yield return null;
         }
 
         OnFinishedShuffling();
