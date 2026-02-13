@@ -60,6 +60,7 @@
     <Analyzer Include="D:\UED\2022.3.62f1c1\Editor\Data\Tools\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\Camera\CameraManager.cs" />
     <Compile Include="Assets\Scripts\JigsawCore\Singleton.cs" />
     <Compile Include="Assets\Scripts\UI\GameplayPage.cs" />
     <Compile Include="Assets\Scripts\Audio\AudioExtensions.cs" />

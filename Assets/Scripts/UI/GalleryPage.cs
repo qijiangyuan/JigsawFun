@@ -11,6 +11,7 @@ public class GalleryPage : BasePage
     public ScrollRect categoryScrollRect;           // 类别滚动视图
     public Transform categoryToggleParent;          // 类别按钮父对象
     public Toggle categoryTogglePrefab;            // 类别Toggle预制体
+    public Button cameraButton;                    // 相机按钮
 
     public ScrollRect imageScrollRect;             // 图片滚动视图
     public Transform imageGridParent;              // 图片网格父对象
@@ -48,6 +49,63 @@ public class GalleryPage : BasePage
         {
             categoryToggleGroup = categoryToggleParent.gameObject.AddComponent<ToggleGroup>();
         }
+
+        // 初始化相机按钮
+        if (cameraButton != null)
+        {
+            cameraButton.onClick.AddListener(OnCameraButtonClicked);
+        }
+        else
+        {
+            // 如果没有分配按钮，尝试在子物体中找一个名字叫 "CameraButton" 的按钮
+            Transform camBtnTransform = transform.Find("CameraButton");
+            if (camBtnTransform != null)
+            {
+                cameraButton = camBtnTransform.GetComponent<Button>();
+                if (cameraButton != null)
+                {
+                    cameraButton.onClick.AddListener(OnCameraButtonClicked);
+                }
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (CameraManager.Instance != null)
+        {
+            CameraManager.Instance.onPhotoCaptured += OnPhotoCaptured;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (CameraManager.Instance != null)
+        {
+            CameraManager.Instance.onPhotoCaptured -= OnPhotoCaptured;
+        }
+    }
+
+    private void OnCameraButtonClicked()
+    {
+        if (CameraManager.Instance != null)
+        {
+            CameraManager.Instance.TakePhoto();
+        }
+        else
+        {
+            Debug.LogError("CameraManager Instance is null!");
+        }
+    }
+
+    private void OnPhotoCaptured(Texture2D texture)
+    {
+        // 创建 Sprite
+        Sprite capturedSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+        capturedSprite.name = "CameraPhoto_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        
+        // 直接进入难度选择
+        OnImageSelected(capturedSprite);
     }
 
     /// <summary>

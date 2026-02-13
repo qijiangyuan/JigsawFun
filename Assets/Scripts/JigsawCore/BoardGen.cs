@@ -58,24 +58,13 @@ public class BoardGen : MonoBehaviour
     private const float panEpsilon = 1e-4f;
 
     /// <summary>
-    /// 加载源纹理，按左下对齐裁剪到可整除的 n*n 区域，并添加 padding，生成用于拼图的底图精灵：
-    /// - 计算 tileSize = floor(min(W, H) / n)
-    /// - usedSide = tileSize * n，左下对齐在源图上取 [0, usedSide)×[0, usedSide)（不缩放）
-    /// - 创建新纹理尺寸为 (usedSide + 2*padding)，将裁剪区域复制到中心，并强制 alpha=255
-    /// - 调用 Tile.SetTileSize(tileSize) 以更新运行时 tileSize 与曲线点集
-    /// - 动态计算 padding：按 tileSize 比例调整，避免大尺寸时曲线（凸出/凹入）被裁剪
+    /// 处理给定的纹理，按左下对齐裁剪到可整除的 n*n 区域，并添加 padding，生成用于拼图的底图精灵
     /// </summary>
-    Sprite LoadBaseTexture(int n)
+    Sprite ProcessBaseTexture(Texture2D tex, int n)
     {
-        Texture2D tex = SpriteUtils.LoadTexture(imageFilename);
         if (tex == null)
         {
-            Debug.LogError("Error: Texture not found: " + imageFilename);
-            return null;
-        }
-        if (!tex.isReadable)
-        {
-            Debug.Log("Error: Texture is not readable");
+            Debug.LogError("Error: Texture is null");
             return null;
         }
 
@@ -94,12 +83,10 @@ public class BoardGen : MonoBehaviour
         }
 
         // 动态计算 padding：随 tileSize 增长，确保凹凸曲线完全包含在 finalCut 纹理内
-        // 比例经验值 0.28，可根据美术模板幅度微调；并进行安全钳制避免过大/过小
         int dynPadding = Mathf.RoundToInt(tileSize * 0.28f);
         dynPadding = Mathf.Clamp(dynPadding, 3, Mathf.Max(6, tileSize / 2 - 1));
         Tile.padding = dynPadding;
 
-        // 为了与原逻辑兼容（numTileX = baseTex.width / tileSize 取整），建议 tileSize > padding
         if (tileSize <= Tile.padding)
         {
             Debug.LogWarning($"Warning: tileSize({tileSize}) <= padding({Tile.padding}). Consider using a smaller n or reducing padding.");
@@ -117,15 +104,13 @@ public class BoardGen : MonoBehaviour
             usedSide + Tile.padding * 2,
             TextureFormat.ARGB32,
             false);
-        // 为避免左/下 1px 因半像素/双线性采样被视觉上“吃掉”，使用点采样与 Clamp 环绕
         newTex.filterMode = FilterMode.Point;
         newTex.wrapMode = TextureWrapMode.Clamp;
 
         int dstW = newTex.width;
         int dstH = newTex.height;
 
-        // 调试日志：输出关键参数，便于确认是否为左下对齐裁剪
-        Debug.Log($"[LoadBaseTexture Debug] src=({srcW}x{srcH}), n={n}, tileSize={tileSize}, usedSide={usedSide}, start=({startX},{startY}), padding={Tile.padding}, dst=({dstW}x{dstH})");
+        Debug.Log($"[ProcessBaseTexture Debug] src=({srcW}x{srcH}), n={n}, tileSize={tileSize}, usedSide={usedSide}, start=({startX},{startY}), padding={Tile.padding}, dst=({dstW}x{dstH})");
 
         // 目标缓冲初始化为白色
         Color32[] dst = new Color32[dstW * dstH];
@@ -148,8 +133,6 @@ public class BoardGen : MonoBehaviour
             }
         }
 
-        // 调试辅助边框绘制已移除（保持成品无彩色辅助线）
-
         newTex.SetPixels32(dst);
         newTex.Apply();
 
@@ -163,6 +146,22 @@ public class BoardGen : MonoBehaviour
             newTex.width,
             newTex.height);
         return sprite;
+    }
+
+    Sprite LoadBaseTexture(int n)
+    {
+        Texture2D tex = SpriteUtils.LoadTexture(imageFilename);
+        if (tex == null)
+        {
+            Debug.LogError("Error: Texture not found: " + imageFilename);
+            return null;
+        }
+        if (!tex.isReadable)
+        {
+            Debug.Log("Error: Texture is not readable");
+            return null;
+        }
+        return ProcessBaseTexture(tex, n);
     }
 
     // Start is called before the first frame update
@@ -194,12 +193,22 @@ public class BoardGen : MonoBehaviour
         {
             //从gamemanger里面获取拼图数据
             GameData currentData = GameManager.Instance.currentGameData;
-            imageFilename = "Images/PuzzleImages/Nature/" + currentData.selectedImage.name;
             mN = currentData.difficulty;
-            //mBaseSpriteOpaque = currentData.selectedImage;
-            mBaseSpriteOpaque = LoadBaseTexture(mN);
+            
+            // 如果 selectedImage 是通过相机拍摄的，或者是动态生成的，直接使用其 texture
+            if (currentData.selectedImage != null && currentData.selectedImage.texture != null)
+            {
+                // 如果是资源图片，可能需要检查 isReadable，ProcessBaseTexture 内部会处理
+                mBaseSpriteOpaque = ProcessBaseTexture(currentData.selectedImage.texture, mN);
+                imageFilename = currentData.selectedImage.name;
+            }
+            else
+            {
+                imageFilename = "Images/PuzzleImages/Nature/" + currentData.selectedImage.name;
+                mBaseSpriteOpaque = LoadBaseTexture(mN);
+            }
 
-            Debug.Log($"从游戏数据生成拼图: {currentData.imageName}, 难度={mN}x{mN}");
+            Debug.Log($"从游戏数据生成拼图: {imageFilename}, 难度={mN}x{mN}");
         }
 
         mGameObjectOpaque = new GameObject();
