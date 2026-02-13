@@ -88,13 +88,20 @@ public class GalleryPage : BasePage
 
     private void OnCameraButtonClicked()
     {
+        if (CameraManager.Instance == null)
+        {
+            // 如果不存在 CameraManager，则创建一个
+            GameObject camMgrObj = new GameObject("CameraManager");
+            camMgrObj.AddComponent<CameraManager>();
+        }
+
         if (CameraManager.Instance != null)
         {
             CameraManager.Instance.TakePhoto();
         }
         else
         {
-            Debug.LogError("CameraManager Instance is null!");
+            Debug.LogError("CameraManager Instance is still null after creation attempt!");
         }
     }
 
