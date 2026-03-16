@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using DG.Tweening;
 
 public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -12,6 +13,10 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
     private TileMovement tileMovement;
     private bool isDragging = false;
     private bool isDraggingPiece = false; // Whether we are dragging the puzzle piece (true) or scrolling the list (false)
+    private Vector3 worldOriginalScale;
+    public float dragScaleMultiplier = 1.0f;
+    public float dragScaleInDuration = 0.2f;
+    public float dragScaleOutDuration = 0.2f;
 
     void Awake()
     {
@@ -28,6 +33,7 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
         worldPiece = piece;
         scrollRect = scroll;
         tileMovement = worldPiece.GetComponent<TileMovement>();
+        worldOriginalScale = worldPiece != null ? worldPiece.transform.localScale : Vector3.one;
         
         // Create sprite from piece texture
         SpriteRenderer sr = worldPiece.GetComponent<SpriteRenderer>();
@@ -64,6 +70,10 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
             
             // Show World Piece
             worldPiece.SetActive(true);
+            worldPiece.transform.DOKill();
+            worldPiece.transform.localScale = worldOriginalScale;
+            worldPiece.transform.localScale = worldOriginalScale * 0.5f;
+            worldPiece.transform.DOScale(worldOriginalScale * dragScaleMultiplier, dragScaleInDuration).SetEase(Ease.OutBack);
             UpdateWorldPosition(eventData);
             
             // Bring to top
@@ -111,14 +121,17 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
             
             if (placed)
             {
+                worldPiece.transform.DOKill();
+                worldPiece.transform.DOScale(worldOriginalScale, dragScaleOutDuration).SetEase(Ease.OutSine);
                 // Destroy this UI item as the piece is now on the board
                 Destroy(gameObject);
             }
             else
             {
-                // Return to tray
-                worldPiece.SetActive(false);
-                uiImage.color = Color.white;
+                // 留在玩家松手的位置（不自动放回托盘）
+                worldPiece.transform.DOKill();
+                worldPiece.transform.DOScale(worldOriginalScale, dragScaleOutDuration).SetEase(Ease.OutSine);
+                Destroy(gameObject);
             }
         }
         else
@@ -130,8 +143,22 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
     
     private void UpdateWorldPosition(PointerEventData eventData)
     {
-        Vector3 worldPos = Camera.main.ScreenToWorldPoint(new Vector3(eventData.position.x, eventData.position.y, 10f));
-        worldPos.z = 0; // Ensure 2D
-        worldPiece.transform.position = worldPos;
+        var cam = Camera.main;
+        float zDist = Mathf.Abs(worldPiece.transform.position.z - cam.transform.position.z);
+        Vector3 mouseWp = cam.ScreenToWorldPoint(new Vector3(eventData.position.x, eventData.position.y, zDist));
+        mouseWp.z = 0f;
+        var sr = worldPiece.GetComponent<SpriteRenderer>();
+        var tm = worldPiece.GetComponent<TileMovement>();
+        if (sr != null)
+        {
+            Vector3 centerOffset = sr.bounds.center - worldPiece.transform.position;
+            float factor = tm != null ? tm.dragUpOffsetFactor : 0.2f;
+            float up = sr.bounds.size.y * factor;
+            worldPiece.transform.position = mouseWp - centerOffset + new Vector3(0f, up, 0f);
+        }
+        else
+        {
+            worldPiece.transform.position = mouseWp;
+        }
     }
 }

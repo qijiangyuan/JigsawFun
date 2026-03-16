@@ -110,7 +110,7 @@ public class ImageLoader : MonoBehaviour
 
         // 这里我们使用预定义的类别列表，因为Resources.LoadAll无法直接获取文件夹列表
         // 如果需要动态获取，可以考虑使用StreamingAssets或其他方式
-        string[] predefinedCategories = { "Nature", "Cartoon", "Mechanical", "Art", "Fantasy" };
+        string[] predefinedCategories = { "Nature", "Anime", "Mechanical", "Art", "Fantasy" };
 
         foreach (string category in predefinedCategories)
         {

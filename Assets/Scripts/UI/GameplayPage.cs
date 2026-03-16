@@ -53,6 +53,9 @@ public class GameplayPage : BasePage
     //免费提示次数 
     private int freeHintCount = 3; // 初始免费提示次数
     private HintManager hintManager; // 提示管理器
+    
+    [Header("布局")]
+    public float boardMargin = 1.0f; // 棋盘白边（像素）更窄
 
     private PuzzlePiece currentPiece; // 当前选中的拼图块
 
@@ -157,6 +160,32 @@ public class GameplayPage : BasePage
 
         if (backButton != null)
             backButton.onClick.AddListener(OnBackButtonClicked);
+        else
+        {
+            // 动态创建“Back to Main Menu”按钮（若未在Prefab中指定）
+            GameObject btnObj = new GameObject("BackToMainMenuButton");
+            btnObj.transform.SetParent(transform, false);
+            var rt = btnObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(20f, -20f);
+            rt.sizeDelta = new Vector2(180f, 60f);
+            var img = btnObj.AddComponent<Image>();
+            img.color = new Color(0.95f, 0.95f, 0.98f, 0.85f);
+            var btn = btnObj.AddComponent<Button>();
+            var txtObj = new GameObject("Text");
+            txtObj.transform.SetParent(btnObj.transform, false);
+            var txt = txtObj.AddComponent<TextMeshProUGUI>();
+            var trt = txt.rectTransform;
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+            trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
+            txt.alignment = TextAlignmentOptions.Center;
+            txt.text = "Main Menu";
+            txt.fontSize = 28;
+            backButton = btn;
+            backButton.onClick.AddListener(OnBackButtonClicked);
+        }
 
         // 初始化提示管理器
         if (hintManager == null)
@@ -196,6 +225,7 @@ public class GameplayPage : BasePage
 
         // 设置背景
         SetupBackground();
+        FitPuzzleFrameMargin();
 
         // 生成拼图
         GeneratePuzzle();
@@ -212,6 +242,20 @@ public class GameplayPage : BasePage
 
         // 初始化提示UI
         UpdateHintUI();
+    }
+
+    private void FitPuzzleFrameMargin()
+    {
+        if (backgroundImage != null)
+        {
+            var rt = backgroundImage.rectTransform;
+            // 让背景图充满拼图区域但留出窄边距
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(boardMargin, boardMargin);
+            rt.offsetMax = new Vector2(-boardMargin, -boardMargin);
+            backgroundImage.preserveAspect = true;
+        }
     }
 
     public void ResetGame()
@@ -337,12 +381,36 @@ public class GameplayPage : BasePage
         // 先使用GameManager返回到Gallery，后面会加一个暂停弹窗
         if (GameManager.Instance != null)
         {
-            JigsawGenerator.Instance.ClearPuzzles();
+            if (GameManager.Instance.currentGameData != null && GameManager.Instance.currentGameData.selectedImage != null)
+            {
+                PlayPrefsManager.Instance.SaveCurrentSceneState(
+                    GameManager.Instance.currentGameData.selectedImage.name,
+                    GameManager.Instance.currentGameData.difficulty
+                );
+            }
             GameManager.Instance.ReturnToGallery();
         }
         else
         {
             Debug.LogError("GameManager实例不存在！");
+        }
+    }
+
+    /// <summary>
+    /// 返回主菜单按钮点击
+    /// </summary>
+    private void OnBackButtonClicked()
+    {
+        if (GameManager.Instance != null)
+        {
+            if (GameManager.Instance.currentGameData != null && GameManager.Instance.currentGameData.selectedImage != null)
+            {
+                PlayPrefsManager.Instance.SaveCurrentSceneState(
+                    GameManager.Instance.currentGameData.selectedImage.name,
+                    GameManager.Instance.currentGameData.difficulty
+                );
+            }
+            GameManager.Instance.ReturnToGallery();
         }
     }
 

@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
 using System;
+using System.Collections.Generic;
 
 public class LoadingPage : BasePage
 {
@@ -94,6 +95,8 @@ public class LoadingPage : BasePage
     {
         //使用Scene_JigsawGame场景
         isLoading = true;
+        // 在加载前，卸载所有已加载的同名场景，避免重复实例叠加
+        yield return UnloadAllLoadedScenesByName(sceneName);
         AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         if (asyncOp == null)
         {
@@ -198,6 +201,33 @@ public class LoadingPage : BasePage
     }
 
     /// <summary>
+    /// 卸载所有已加载的指定名称场景，确保不会产生重复的叠加实例
+    /// </summary>
+    private IEnumerator UnloadAllLoadedScenesByName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) yield break;
+        // 收集所有同名已加载场景
+        List<Scene> toUnload = new List<Scene>();
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var sc = SceneManager.GetSceneAt(i);
+            if (sc.IsValid() && sc.isLoaded && sc.name == sceneName)
+            {
+                toUnload.Add(sc);
+            }
+        }
+        // 顺序卸载
+        for (int i = 0; i < toUnload.Count; i++)
+        {
+            var op = SceneManager.UnloadSceneAsync(toUnload[i]);
+            if (op != null)
+            {
+                while (!op.isDone) yield return null;
+            }
+        }
+    }
+
+    /// <summary>
     /// 等待拼图生成完成
     /// </summary>
     private IEnumerator WaitForPuzzleGeneration()
@@ -231,6 +261,35 @@ public class LoadingPage : BasePage
 
         // 等待拼图生成完成
         yield return new WaitUntil(() => generationComplete);
+
+        // 应用进度
+        var gd = GameManager.Instance != null ? GameManager.Instance.currentGameData : null;
+        if (gd != null && gd.selectedImage != null)
+        {
+            string id = gd.selectedImage.name;
+            var state = PlayPrefsManager.Instance.LoadPuzzleStateForImage(id);
+            if (state != null && state.pieces != null && state.pieces.Length > 0 && state.gridSize == gd.difficulty)
+            {
+                var tiles = FindObjectsOfType<TileMovement>();
+                for (int i = 0; i < tiles.Length; i++)
+                {
+                    var tm = tiles[i];
+                    int cx = tm.tile != null ? tm.tile.xIndex : 0;
+                    int cy = tm.tile != null ? tm.tile.yIndex : 0;
+                    for (int j = 0; j < state.pieces.Length; j++)
+                    {
+                        var pd = state.pieces[j];
+                        if (pd.col == cx && pd.row == cy)
+                        {
+                            Vector3 target = pd.isPlaced ? new Vector3(cx * Tile.tileSize, cy * Tile.tileSize, 0f) : pd.currentPosition;
+                            tm.transform.position = target;
+                            break;
+                        }
+                    }
+                }
+                Physics2D.SyncTransforms();
+            }
+        }
 
         // 取消订阅
         jigsawGenerator.OnGenerationProgress -= OnPuzzleGenerationProgress;

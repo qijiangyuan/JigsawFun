@@ -48,7 +48,29 @@ public class BoardGen : MonoBehaviour
     public float zoomSpeedTouch = 0.01f;
     [Tooltip("拖拽摄像机灵敏度（值越大相机移动越快）")]
     public float panSpeed = 1f;
+    [Header("适配")]
+    public float boardEdgeMargin = 0.02f;
+    [Header("结算")]
+    private int tilesInPlace = 0;
+    private int tilesTotal = 0;
+    public bool cameraInteractionEnabled = false;
+    [Header("Board Appearance")]
+    [Tooltip("拼图底图显示白边相对于单块边长的系数（仅影响底图显示，不影响拼图块榫卯）")]
+    [Range(0f, 0.12f)]
+    public float paddingFactor = 0.06f;
+    [Tooltip("拼图块生成所需的 padding 系数（影响榫卯空间）。过小会导致拼图块被裁切/破坏。")]
+    [Range(0.18f, 0.35f)]
+    public float piecePaddingFactor = 0.28f;
+    [Tooltip("仅用于底图显示的白边裁剪像素（不影响拼图块蒙版/位置）")]
+    [Range(0, 200)]
+    public int baseBorderCrop = 0;
+    public bool useDifficultyPadding = true;
+    public int difficultyMin = 3;
+    public int difficultyMax = 12;
+    public AnimationCurve paddingByDifficulty = AnimationCurve.Linear(0f, 0.06f, 1f, 0.1f);
+    public Color borderColor = new Color(2f / 255f, 191f / 255f, 196f / 255f, 1f);
 
+   
     // 运行时状态
     private bool isPanning = false;
     private bool pinching = false;
@@ -56,6 +78,7 @@ public class BoardGen : MonoBehaviour
     private Vector3 lastPanWorldPos;
     // 平移微抖阈值，避免极小抖动
     private const float panEpsilon = 1e-4f;
+    private int runtimeDisplayCropPixels = 0;
 
     /// <summary>
     /// 处理给定的纹理，按左下对齐裁剪到可整除的 n*n 区域，并添加 padding，生成用于拼图的底图精灵
@@ -67,6 +90,7 @@ public class BoardGen : MonoBehaviour
             Debug.LogError("Error: Texture is null");
             return null;
         }
+        tex = GetReadableTexture(tex);
 
         int srcW = tex.width;
         int srcH = tex.height;
@@ -82,10 +106,15 @@ public class BoardGen : MonoBehaviour
             return null;
         }
 
-        // 动态计算 padding：随 tileSize 增长，确保凹凸曲线完全包含在 finalCut 纹理内
-        int dynPadding = Mathf.RoundToInt(tileSize * 0.28f);
-        dynPadding = Mathf.Clamp(dynPadding, 3, Mathf.Max(6, tileSize / 2 - 1));
+        // 动态计算拼图块生成所需 padding（用于榫卯空间）
+        int dynPadding = Mathf.RoundToInt(tileSize * Mathf.Clamp01(piecePaddingFactor));
+        dynPadding = Mathf.Clamp(dynPadding, 6, Mathf.Max(10, tileSize / 3 - 1));
         Tile.padding = dynPadding;
+
+        int desiredBorderPx = Mathf.RoundToInt(tileSize * Mathf.Clamp01(paddingFactor));
+        desiredBorderPx = Mathf.Clamp(desiredBorderPx, 0, Tile.padding - 1);
+        int computedCrop = Tile.padding - desiredBorderPx;
+        runtimeDisplayCropPixels = baseBorderCrop > 0 ? baseBorderCrop : Mathf.Clamp(computedCrop, 0, Tile.padding - 1);
 
         if (tileSize <= Tile.padding)
         {
@@ -112,10 +141,13 @@ public class BoardGen : MonoBehaviour
 
         Debug.Log($"[ProcessBaseTexture Debug] src=({srcW}x{srcH}), n={n}, tileSize={tileSize}, usedSide={usedSide}, start=({startX},{startY}), padding={Tile.padding}, dst=({dstW}x{dstH})");
 
-        // 目标缓冲初始化为白色
+        // 目标缓冲初始化为白边颜色
         Color32[] dst = new Color32[dstW * dstH];
-        Color32 white = new Color32(255, 255, 255, 255);
-        for (int i = 0; i < dst.Length; i++) dst[i] = white;
+        byte br = (byte)Mathf.RoundToInt(Mathf.Clamp01(borderColor.r) * 255f);
+        byte bg = (byte)Mathf.RoundToInt(Mathf.Clamp01(borderColor.g) * 255f);
+        byte bb = (byte)Mathf.RoundToInt(Mathf.Clamp01(borderColor.b) * 255f);
+        Color32 borderC = new Color32(br, bg, bb, 255);
+        for (int i = 0; i < dst.Length; i++) dst[i] = borderC;
 
         // 源像素一次性读取
         Color32[] src = tex.GetPixels32();
@@ -156,12 +188,64 @@ public class BoardGen : MonoBehaviour
             Debug.LogError("Error: Texture not found: " + imageFilename);
             return null;
         }
-        if (!tex.isReadable)
-        {
-            Debug.Log("Error: Texture is not readable");
-            return null;
-        }
+        tex = GetReadableTexture(tex);
         return ProcessBaseTexture(tex, n);
+    }
+
+    private Texture2D GetReadableTexture(Texture2D source)
+    {
+        if (source == null) return null;
+        if (source.isReadable) return source;
+
+        RenderTexture rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+        Graphics.Blit(source, rt);
+        RenderTexture prev = RenderTexture.active;
+        RenderTexture.active = rt;
+
+        Texture2D tex = new Texture2D(source.width, source.height, TextureFormat.ARGB32, false);
+        tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+        tex.Apply();
+        tex.filterMode = FilterMode.Point;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        RenderTexture.active = prev;
+        RenderTexture.ReleaseTemporary(rt);
+        return tex;
+    }
+
+    private Texture2D ExtractSpriteTexture(Sprite sprite)
+    {
+        if (sprite == null) return null;
+        Texture2D readableAtlas = GetReadableTexture(sprite.texture);
+        if (readableAtlas == null) return null;
+
+        Rect r = sprite.textureRect;
+        int w = Mathf.RoundToInt(r.width);
+        int h = Mathf.RoundToInt(r.height);
+        int x0 = Mathf.RoundToInt(r.x);
+        int y0 = Mathf.RoundToInt(r.y);
+        if (w <= 0 || h <= 0) return null;
+
+        Color32[] src = readableAtlas.GetPixels32();
+        int srcW = readableAtlas.width;
+        Color32[] dst = new Color32[w * h];
+
+        for (int y = 0; y < h; y++)
+        {
+            int srcRow = (y0 + y) * srcW + x0;
+            int dstRow = y * w;
+            for (int x = 0; x < w; x++)
+            {
+                dst[dstRow + x] = src[srcRow + x];
+            }
+        }
+
+        Texture2D outTex = new Texture2D(w, h, TextureFormat.ARGB32, false);
+        outTex.SetPixels32(dst);
+        outTex.Apply();
+        outTex.filterMode = FilterMode.Point;
+        outTex.wrapMode = TextureWrapMode.Clamp;
+        return outTex;
     }
 
     // Start is called before the first frame update
@@ -182,18 +266,38 @@ public class BoardGen : MonoBehaviour
 
     public void StartGame()
     {
+        // 清理上一次场景残留的排序引用，避免 MissingReference
+        Tile.tilesSorting.Clear();
         if (GameManager.Instance == null)
         {
             //默认测试
             imageFilename = GameApp.Instance.GetJigsawImageName();
             mN = Mathf.Max(2, initialN);
+            paddingFactor = GetPaddingFactorForDifficulty(mN);
             mBaseSpriteOpaque = LoadBaseTexture(mN);
         }
         else
         {
             //从gamemanger里面获取拼图数据
             GameData currentData = GameManager.Instance.currentGameData;
+            // 默认使用游戏数据的难度
             mN = currentData.difficulty;
+            // 如果存在存档，则以存档难度为准
+            if (currentData != null && currentData.selectedImage != null)
+            {
+                var saved = PlayPrefsManager.Instance.LoadPuzzleStateForImage(currentData.selectedImage.name);
+                if (saved != null && saved.pieces != null && saved.pieces.Length > 0)
+                {
+                    Debug.Log($"[BoardGen] Found save for image={currentData.selectedImage.name}, savedGrid={saved.gridSize}, gameDataGrid={mN}, using saved grid");
+                    mN = saved.gridSize;
+                    GameManager.Instance.currentGameData.difficulty = mN;
+                }
+                else
+                {
+                    Debug.Log($"[BoardGen] No save found for image={currentData.selectedImage.name}, using gameDataGrid={mN}");
+                }
+            }
+            paddingFactor = GetPaddingFactorForDifficulty(mN);
             
             // 如果 selectedImage 是通过相机拍摄的，或者是动态生成的，直接使用其 texture
             if (currentData.selectedImage != null && currentData.selectedImage.texture != null)
@@ -213,14 +317,48 @@ public class BoardGen : MonoBehaviour
 
         mGameObjectOpaque = new GameObject();
         mGameObjectOpaque.name = imageFilename + "_Opaque";
-        mGameObjectOpaque.AddComponent<SpriteRenderer>().sprite = mBaseSpriteOpaque;
-        mGameObjectOpaque.GetComponent<SpriteRenderer>().sortingLayerName = "Opaque";
+        var srOpaque = mGameObjectOpaque.AddComponent<SpriteRenderer>();
+        if (runtimeDisplayCropPixels > 0)
+        {
+            int w = mBaseSpriteOpaque.texture.width;
+            int h = mBaseSpriteOpaque.texture.height;
+            int crop = Mathf.Clamp(runtimeDisplayCropPixels, 0, Mathf.Min(w, h) / 2 - 1);
+            var cropped = SpriteUtils.CreateSpriteFromTexture2D(
+                mBaseSpriteOpaque.texture,
+                crop, crop,
+                w - crop * 2,
+                h - crop * 2);
+            srOpaque.sprite = cropped;
+            mGameObjectOpaque.transform.position = new Vector3(crop, crop, 0f);
+        }
+        else
+        {
+            srOpaque.sprite = mBaseSpriteOpaque;
+        }
+        srOpaque.sortingLayerName = "Opaque";
 
-        mBaseSpriteTransparent = CreateTransparentView(mBaseSpriteOpaque.texture);
+        mBaseSpriteTransparent = CreateTransparentView(mBaseSpriteOpaque.texture, runtimeDisplayCropPixels);
         mGameObjectTransparent = new GameObject();
         mGameObjectTransparent.name = imageFilename + "_Transparent";
-        mGameObjectTransparent.AddComponent<SpriteRenderer>().sprite = mBaseSpriteTransparent;
-        mGameObjectTransparent.GetComponent<SpriteRenderer>().sortingLayerName = "Transparent";
+        var srTransp = mGameObjectTransparent.AddComponent<SpriteRenderer>();
+        if (runtimeDisplayCropPixels > 0)
+        {
+            int w = mBaseSpriteTransparent.texture.width;
+            int h = mBaseSpriteTransparent.texture.height;
+            int crop = Mathf.Clamp(runtimeDisplayCropPixels, 0, Mathf.Min(w, h) / 2 - 1);
+            var cropped = SpriteUtils.CreateSpriteFromTexture2D(
+                mBaseSpriteTransparent.texture,
+                crop, crop,
+                w - crop * 2,
+                h - crop * 2);
+            srTransp.sprite = cropped;
+            mGameObjectTransparent.transform.position = new Vector3(crop, crop, 0f);
+        }
+        else
+        {
+            srTransp.sprite = mBaseSpriteTransparent;
+        }
+        srTransp.sortingLayerName = "Transparent";
 
         mGameObjectOpaque.gameObject.SetActive(false);
 
@@ -228,13 +366,23 @@ public class BoardGen : MonoBehaviour
 
         // Create the Jigsaw tiles.
         StartCoroutine(Coroutine_CreateJigsawTiles());
+        // 等待瓦片创建完成后尝试应用存档（即使不洗牌也能恢复）
+        Debug.Log("[BoardGen] StartGame: waiting for tiles to be created, then applying saved state if any");
+        StartCoroutine(WaitApplySavedState());
+    }
+
+    private float GetPaddingFactorForDifficulty(int difficulty)
+    {
+        if (!useDifficultyPadding) return paddingFactor;
+        float t = Mathf.InverseLerp(difficultyMin, difficultyMax, difficulty);
+        return Mathf.Clamp(paddingByDifficulty.Evaluate(t), 0f, 0.12f);
     }
 
     /// <summary>
     /// 基于不透明底图生成“透明视图”（中间区域降低 alpha，四周边框保持原始像素），
     /// 使用 GetPixels32 + SetPixels32 批处理，避免逐像素 API 调用。
     /// </summary>
-    Sprite CreateTransparentView(Texture2D tex)
+    Sprite CreateTransparentView(Texture2D tex, int cropPixels = 0)
     {
         Texture2D newTex = new Texture2D(
           tex.width,
@@ -270,53 +418,63 @@ public class BoardGen : MonoBehaviour
         newTex.SetPixels32(buf);
         newTex.Apply();
 
+        int cx = Mathf.Clamp(cropPixels, 0, Mathf.Min(newTex.width, newTex.height) / 2 - 1);
         Sprite sprite = SpriteUtils.CreateSpriteFromTexture2D(
           newTex,
-          0,
-          0,
-          newTex.width,
-          newTex.height);
+          cx,
+          cx,
+          newTex.width - cx * 2,
+          newTex.height - cx * 2);
         return sprite;
     }
 
     void SetCameraPosition()
     {
-        // 计算中心点
-        float cx = mBaseSpriteOpaque.texture.width / 2f;
-        float cy = mBaseSpriteOpaque.texture.height / 2f;
+        // 计算中心点与适配尺寸，优先使用“实际显示”的精灵（透明视图，可能被裁剪）
+        float width, height, ox, oy;
+        Sprite displaySprite = null;
+        if (mGameObjectTransparent != null)
+        {
+            var srt = mGameObjectTransparent.GetComponent<SpriteRenderer>();
+            if (srt != null && srt.sprite != null)
+            {
+                displaySprite = srt.sprite;
+                ox = mGameObjectTransparent.transform.position.x;
+                oy = mGameObjectTransparent.transform.position.y;
+                width = displaySprite.rect.width;
+                height = displaySprite.rect.height;
+                goto ComputeCamera;
+            }
+        }
+        // 回退到不透明底图
+        width = mBaseSpriteOpaque.rect.width;
+        height = mBaseSpriteOpaque.rect.height;
+        ox = mGameObjectOpaque != null ? mGameObjectOpaque.transform.position.x : 0f;
+        oy = mGameObjectOpaque != null ? mGameObjectOpaque.transform.position.y : 0f;
+ComputeCamera:
+        float cx = width / 2f + ox;
+        float cy = height / 2f + oy;
 
         // 若宽/高为偶数像素，中心落在像素间隙，+0.5f 可减少半像素采样导致的边缘1px丢失
-        if ((mBaseSpriteOpaque.texture.width & 1) == 0) cx += 0.5f;
-        if ((mBaseSpriteOpaque.texture.height & 1) == 0) cy += 0.5f;
+        if (((int)width & 1) == 0) cx += 0.5f;
+        if (((int)height & 1) == 0) cy += 0.5f;
 
         Camera.main.transform.position = new Vector3(cx, cy, -10.0f);
 
-        // 计算需要包含拼图盘和周围散布区域的视野大小
-        // 拼图盘尺寸
-        float puzzleBoardWidth = mBaseSpriteOpaque.texture.width;
-        float puzzleBoardHeight = mBaseSpriteOpaque.texture.height;
+        float puzzleBoardWidth = width;
+        float puzzleBoardHeight = height;
+        float totalWidth = puzzleBoardWidth;
+        float totalHeight = puzzleBoardHeight;
 
-        // 洗牌区域的范围（参考Shuffle方法中的regions定义）
-        // 左侧区域: x从-300到-250, 右侧区域: x从(numTileX+1)*tileSize到(numTileX+1)*tileSize+50
-        float leftRegionWidth = 300f; // 左侧散布区域宽度
-        float rightRegionWidth = 350f; // 右侧散布区域宽度（包含一些额外边距）
-        float verticalMargin = 200f; // 上下额外边距
-
-        // 计算总的需要包含的区域
-        float totalWidth = leftRegionWidth + puzzleBoardWidth + rightRegionWidth;
-        float totalHeight = puzzleBoardHeight + verticalMargin;
-
-        // 根据屏幕宽高比选择合适的正交大小
         float aspectRatio = (float)Screen.width / Screen.height;
         float requiredSizeForWidth = totalWidth / (2.0f * aspectRatio);
         float requiredSizeForHeight = totalHeight / 2.0f;
-
-        // 选择较大的值以确保所有内容都在视野内，并添加额外的安全边距
-        float cameraSize = Mathf.Max(requiredSizeForWidth, requiredSizeForHeight) * 1.1f;
+        float marginFactor = 1f + Mathf.Max(0f, boardEdgeMargin);
+        float cameraSize = Mathf.Max(requiredSizeForWidth, requiredSizeForHeight) * marginFactor;
 
         Camera.main.orthographicSize = cameraSize;
 
-        Debug.Log($"摄像机设置: 拼图盘({puzzleBoardWidth}x{puzzleBoardHeight}), 总视野({totalWidth}x{totalHeight}), 正交大小={cameraSize}");
+        Debug.Log($"摄像机设置: 拼图盘({puzzleBoardWidth}x{puzzleBoardHeight}), 中心({cx},{cy}), 正交大小={cameraSize}");
     }
 
     public static GameObject CreateGameObjectFromTile(Tile tile)
@@ -369,6 +527,8 @@ public class BoardGen : MonoBehaviour
 
         mTiles = new Tile[numTileX, numTileY];
         mTileGameObjects = new GameObject[numTileX, numTileY];
+        tilesInPlace = 0;
+        tilesTotal = numTileX * numTileY;
 
         for (int i = 0; i < numTileX; i++)
         {
@@ -376,6 +536,7 @@ public class BoardGen : MonoBehaviour
             {
                 mTiles[i, j] = CreateTile(i, j, baseTexture);
                 mTileGameObjects[i, j] = CreateGameObjectFromTile(mTiles[i, j]);
+                // 订阅统一放到打乱完成后（OnFinishedShuffling）再进行，避免重复订阅
                 if (parentForTiles != null)
                 {
                     mTileGameObjects[i, j].transform.SetParent(parentForTiles);
@@ -401,6 +562,8 @@ public class BoardGen : MonoBehaviour
 
         mTiles = new Tile[numTileX, numTileY];
         mTileGameObjects = new GameObject[numTileX, numTileY];
+        tilesInPlace = 0;
+        tilesTotal = numTileX * numTileY;
 
         for (int i = 0; i < numTileX; i++)
         {
@@ -408,6 +571,7 @@ public class BoardGen : MonoBehaviour
             {
                 mTiles[i, j] = CreateTile(i, j, baseTexture);
                 mTileGameObjects[i, j] = CreateGameObjectFromTile(mTiles[i, j]);
+                // 订阅统一放到打乱完成后（OnFinishedShuffling）再进行，避免重复订阅
                 if (parentForTiles != null)
                 {
                     mTileGameObjects[i, j].transform.SetParent(parentForTiles);
@@ -425,6 +589,8 @@ public class BoardGen : MonoBehaviour
         //发出拼图生成好了的事件
         EventDispatcher.Dispatch(EventNames.PUZZLE_GENERATEION_DONE);
     }
+
+    
 
 
     Tile CreateTile(int i, int j, Texture2D baseTexture)
@@ -522,6 +688,7 @@ public class BoardGen : MonoBehaviour
     private void HandleCameraInput()
     {
         if (Camera.main == null) return;
+        if (!cameraInteractionEnabled) return;
 
         // 触摸优先
         if (Input.touchCount >= 2)
@@ -744,7 +911,7 @@ public class BoardGen : MonoBehaviour
 
         // 3. 计算排列参数
         // 拼图板尺寸
-        float puzzleBoardWidth = mBaseSpriteOpaque.texture.width;
+        float puzzleBoardWidth = mBaseSpriteOpaque.rect.width;
         //float puzzleBoardHeight = mBaseSpriteOpaque.texture.height;
         float halfBoardWidth = puzzleBoardWidth * 0.5f;
 
@@ -801,13 +968,112 @@ public class BoardGen : MonoBehaviour
             for (int j = 0; j < numTileY; ++j)
             {
                 TileMovement tm = mTileGameObjects[i, j].GetComponent<TileMovement>();
-                tm.onTileInPlace += OnTileInPlace;
+                if (tm != null)
+                {
+                    // 防御性：先移除再添加，确保不会重复订阅
+                    tm.onTileInPlace -= OnTileInPlace;
+                    tm.onTileInPlace += OnTileInPlace;
+                }
                 SpriteRenderer spriteRenderer = tm.gameObject.GetComponent<SpriteRenderer>();
                 Tile.tilesSorting.BringToTop(spriteRenderer);
             }
         }
 
+        // 应用存档（如果存在）
+        ApplySavedStateIfAny();
+
         menu.SetTotalTiles(numTileX * numTileY);
+    }
+
+    /// <summary>
+    /// 从 PlayPrefsManager 加载当前图片的未完成存档，并应用到棋盘。
+    /// </summary>
+    private void ApplySavedStateIfAny()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null || gm.currentGameData == null || gm.currentGameData.selectedImage == null) return;
+        string imageId = gm.currentGameData.selectedImage.name;
+        var state = PlayPrefsManager.Instance.LoadPuzzleStateForImage(imageId);
+        if (state == null || state.pieces == null || state.pieces.Length == 0) return;
+        if (state.gridSize != mN) return;
+
+        // 暂停移动，避免还原过程中触发误操作
+        bool prevMove = gm.TileMovementEnabled;
+        gm.TileMovementEnabled = false;
+
+        int restoredPlaced = 0;
+        Debug.Log($"[BoardGen] Applying saved state: grid={state.gridSize}, tiles={state.pieces.Length}, mN={mN}");
+        // 逐块恢复位置；已放置的直接定位到正确位置但不触发 OnTileInPlace（避免误结算）
+        for (int k = 0; k < state.pieces.Length; k++)
+        {
+            var pd = state.pieces[k];
+            int i = Mathf.Clamp(pd.col, 0, numTileX - 1);
+            int j = Mathf.Clamp(pd.row, 0, numTileY - 1);
+            var go = mTileGameObjects[i, j];
+            if (go == null) continue;
+            var tm = go.GetComponent<TileMovement>();
+            if (tm == null) continue;
+            // 确保世界拼图块可见
+            go.SetActive(true);
+            if (pd.isPlaced)
+            {
+                // 直接设置到正确位置并禁用拖拽组件
+                Vector3 correct = new Vector3(i * Tile.tileSize, j * Tile.tileSize, 0f);
+                tm.transform.position = correct;
+                tm.enabled = false;
+                // 从排序中移除，避免重复调整层级
+                var sr = tm.gameObject.GetComponent<SpriteRenderer>();
+                Tile.tilesSorting.Remove(sr);
+                restoredPlaced++;
+            }
+            else
+            {
+                tm.transform.position = pd.currentPosition;
+                tm.enabled = true;
+            }
+        }
+
+        // 重新构建托盘：只保留未放置的拼图块
+        var tray = UnityEngine.Object.FindObjectOfType<PuzzleScrollTray>();
+        if (tray != null)
+        {
+            tray.Clear();
+            for (int k = 0; k < state.pieces.Length; k++)
+            {
+                var pd = state.pieces[k];
+                int i = Mathf.Clamp(pd.col, 0, numTileX - 1);
+                int j = Mathf.Clamp(pd.row, 0, numTileY - 1);
+                if (!pd.isPlaced)
+                {
+                    var piece = mTileGameObjects[i, j];
+                    if (piece != null) tray.AddPiece(piece);
+                }
+            }
+        }
+
+        // 恢复移动能力
+        gm.TileMovementEnabled = prevMove;
+
+        // 刷新上方 UI 的已就位计数
+        if (menu != null)
+        {
+            gm.TotalTilesInCorrectPosition = restoredPlaced;
+            menu.SetTilesInPlace(gm.TotalTilesInCorrectPosition);
+        }
+        Debug.Log($"[BoardGen] ApplySavedStateIfAny done: restoredPlaced={restoredPlaced}, remaining={state.pieces.Length - restoredPlaced}");
+    }
+
+    private IEnumerator WaitApplySavedState()
+    {
+        // 等待瓦片数组与对象创建
+        int guard = 0;
+        while ((mTileGameObjects == null || mTileGameObjects.Length == 0) && guard < 200)
+        {
+            guard++;
+            yield return null;
+        }
+        Debug.Log($"[BoardGen] Tiles ready (guard={guard}), applying saved state now");
+        ApplySavedStateIfAny();
     }
 
     IEnumerator Coroutine_CallAfterDelay(System.Action function, float delay)
@@ -862,6 +1128,9 @@ public class BoardGen : MonoBehaviour
     {
         // 约束 n 的取值范围
         mN = Mathf.Clamp(n, 2, 50);
+
+        // 清理上一次的排序列表，避免包含已销毁的渲染器
+        Tile.tilesSorting.Clear();
 
         // 停止已有协程（如洗牌移动、计时等）
         StopAllCoroutines();
@@ -973,9 +1242,25 @@ public class BoardGen : MonoBehaviour
 
         if (GameManager.Instance.TotalTilesInCorrectPosition == mTileGameObjects.Length)
         {
-            //Debug.Log("Game completed. We will implement an end screen later");
-            menu.SetEnableTopPanel(false);
-            menu.SetEnableGameCompletionPanel(true);
+            // 新结算：触发胜利页
+            EventDispatcher.Dispatch(EventNames.PUZZLE_COMPLETED);
+            float timeUsed = 0f;
+            var gp = UnityEngine.Object.FindObjectOfType<GameplayPage>();
+            if (gp != null)
+            {
+                timeUsed = gp.GetCurrentGameTime();
+            }
+            var gm = GameManager.Instance;
+            if (gm != null)
+            {
+                gm.CompleteGame(timeUsed);
+            }
+            else
+            {
+                // 回退：旧的面板
+                menu.SetEnableTopPanel(false);
+                menu.SetEnableGameCompletionPanel(true);
+            }
 
             // Reset the values.
             GameManager.Instance.SecondsSinceStart = 0;

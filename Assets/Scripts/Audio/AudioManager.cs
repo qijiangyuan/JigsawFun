@@ -38,12 +38,33 @@ namespace JigsawFun.Audio
         
         private void Start()
         {
-            // 注册到游戏管理器
             RegisterGameSounds();
-
-            if (playMusicOnAwake && backgroundMusic.Length > 0)
+            if (autoSwitchByGameState && GameManager.Instance != null)
             {
-                PlayBackgroundMusic(0);
+                ApplyMusicForState(GameManager.Instance.CurrentState);
+            }
+            else
+            {
+                if (playMusicOnAwake && backgroundMusic.Length > 0)
+                {
+                    PlayBackgroundMusic(0);
+                }
+            }
+        }
+        
+        private void OnEnable()
+        {
+            if (autoSwitchByGameState)
+            {
+                GameManager.OnGameStateChanged += HandleGameStateChanged;
+            }
+        }
+        
+        private void OnDisable()
+        {
+            if (autoSwitchByGameState)
+            {
+                GameManager.OnGameStateChanged -= HandleGameStateChanged;
             }
         }
         
@@ -129,6 +150,12 @@ namespace JigsawFun.Audio
         public AudioClip[] backgroundMusic;
         public bool playMusicOnAwake = true;
         public bool loopBackgroundMusic = true;
+        public bool autoSwitchByGameState = true;
+        [Range(0, 32)] public int mainMenuMusicIndex = 0;
+        [Range(0, 32)] public int gameplayMusicIndex = 1;
+        public bool randomizeGameplayMusic = true;
+        public bool avoidImmediateRepeat = true;
+        private int lastGameplayIndex = -1;
 
         [Header("音效")]
         public SoundGroup[] soundGroups;
@@ -233,6 +260,8 @@ namespace JigsawFun.Audio
             if (backgroundMusic.Length == 0 || index < 0 || index >= backgroundMusic.Length)
                 return;
 
+            if (musicSource.clip == backgroundMusic[index] && musicSource.isPlaying)
+                return;
             musicSource.clip = backgroundMusic[index];
             musicSource.volume = musicVolume * masterVolume;
             musicSource.Play();
@@ -290,6 +319,56 @@ namespace JigsawFun.Audio
         {
             musicVolume = Mathf.Clamp01(volume);
             musicSource.volume = musicVolume * masterVolume;
+        }
+        
+        private void HandleGameStateChanged(GameManager.GameState state)
+        {
+            ApplyMusicForState(state);
+        }
+        
+        private void ApplyMusicForState(GameManager.GameState state)
+        {
+            if (!autoSwitchByGameState) return;
+            if (state == GameManager.GameState.Playing)
+            {
+                int idx = gameplayMusicIndex;
+                if (randomizeGameplayMusic)
+                {
+                    idx = GetRandomGameplayIndexExcludingMenu();
+                }
+                PlayBackgroundMusic(idx);
+            }
+            else if (state == GameManager.GameState.MainMenu ||
+                     state == GameManager.GameState.Gallery ||
+                     state == GameManager.GameState.DifficultySelection)
+            {
+                PlayBackgroundMusic(mainMenuMusicIndex);
+            }
+        }
+
+        private int GetRandomGameplayIndexExcludingMenu()
+        {
+            int count = backgroundMusic != null ? backgroundMusic.Length : 0;
+            if (count <= 1) return gameplayMusicIndex;
+
+            // 构造候选：除去主界面曲目
+            List<int> candidates = new List<int>();
+            for (int i = 0; i < count; i++)
+            {
+                if (i != mainMenuMusicIndex) candidates.Add(i);
+            }
+
+            if (candidates.Count == 0) return gameplayMusicIndex;
+
+            // 避免与上一次相同（如果可能）
+            if (avoidImmediateRepeat && candidates.Count > 1 && lastGameplayIndex >= 0)
+            {
+                candidates.Remove(lastGameplayIndex);
+            }
+
+            int pick = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+            lastGameplayIndex = pick;
+            return pick;
         }
 
         #endregion

@@ -46,11 +46,6 @@ public class PuzzleBase : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     void HandleCameraControls()
     {
         if (targetCamera == null) return;
-        
-        // 处理滚轮缩放
-        HandleZoom();
-        
-        // 拖拽移动现在通过EventSystem接口处理
     }
     
     /// <summary>
@@ -129,10 +124,7 @@ public class PuzzleBase : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (targetCamera == null) return;
-        
-        isDragging = true;
-        lastDragPosition = eventData.position;
-        dragStartCameraPosition = targetCamera.transform.position;
+        isDragging = false;
     }
     
     /// <summary>
@@ -140,18 +132,7 @@ public class PuzzleBase : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     /// </summary>
     public void OnDrag(PointerEventData eventData)
     {
-        if (targetCamera == null || !isDragging) return;
-        
-        Vector3 currentDragPosition = eventData.position;
-        Vector3 deltaDragPosition = currentDragPosition - lastDragPosition;
-        
-        // 将屏幕坐标的移动转换为世界坐标的移动
-        Vector3 worldDelta = ScreenToWorldDelta(deltaDragPosition);
-        
-        // 移动摄像机（方向相反，因为是移动视角）
-        targetCamera.transform.position -= worldDelta * dragSensitivity;
-        
-        lastDragPosition = currentDragPosition;
+        if (targetCamera == null) return;
     }
     
     /// <summary>

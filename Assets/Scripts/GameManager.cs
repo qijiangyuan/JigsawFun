@@ -33,6 +33,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameState currentState = GameState.MainMenu;
     public GameState CurrentState => currentState;
 
+    private GameObject footerRoot;
+
     // 游戏数据
     [System.Serializable]
     public class GameData
@@ -103,7 +105,28 @@ public class GameManager : MonoBehaviour
             Debug.Log($"[GameManager] State changed from {previousState} to {newState}");
         }
 
+        UpdateFooterVisibility(newState);
         OnGameStateChanged?.Invoke(newState);
+    }
+
+    private void UpdateFooterVisibility(GameState state)
+    {
+        if (footerRoot == null)
+        {
+            var go = GameObject.Find("Footer");
+            if (go != null) footerRoot = go;
+        }
+        if (footerRoot == null) return;
+
+        bool show = state == GameState.MainMenu || state == GameState.Gallery || state == GameState.DifficultySelection;
+        if (footerRoot.activeSelf != show)
+        {
+            footerRoot.SetActive(show);
+            if (debugMode)
+            {
+                Debug.Log($"[GameManager] Footer visibility: {show}");
+            }
+        }
     }
 
     #endregion
@@ -259,11 +282,56 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToGallery()
     {
-        //Time.timeScale = 1f; // 确保时间缩放恢复正常
-        //LoadMainScene();
-        SceneManager.UnloadSceneAsync(GAME_SCENE);
-        UIManager.Instance.ShowPage<GalleryPage>();
-        UIManager.Instance.HidePage<GameplayPage>();
+        string imageId = null;
+        if (currentGameData != null)
+        {
+            imageId = currentGameData.selectedImage != null ? currentGameData.selectedImage.name : currentGameData.imageName;
+        }
+        if (!string.IsNullOrEmpty(imageId))
+        {
+            DebugLog($"Saving progress before returning to gallery: imageId={imageId}, grid={currentGameData.difficulty}");
+            PlayPrefsManager.Instance.SaveCurrentSceneState(imageId, currentGameData.difficulty);
+        }
+        // 恢复 UI 到相册页面
+        if (UIManager.Instance != null)
+        {
+            CleanUpGameplayUI();
+            UIManager.Instance.HidePage<VictoryPage>();
+            UIManager.Instance.HidePage<GameplayPage>();
+            UIManager.Instance.ShowPage<GalleryPage>();
+        }
+        ChangeGameState(GameState.Gallery);
+
+        // 尝试卸载可能加载的游戏相关场景（兼容不同名称）
+        TryUnloadSceneSafely(JIGSAW_SCENE);
+        TryUnloadSceneSafely(GAME_SCENE);
+    }
+
+    /// <summary>
+    /// 清理游戏过程中动态创建并挂在主 Canvas 下的 UI（例如 PuzzleScrollTray）
+    /// 避免返回主菜单后仍然遮挡按钮
+    /// </summary>
+    private void CleanUpGameplayUI()
+    {
+        // 销毁所有拼图托盘
+        var trays = GameObject.FindObjectsOfType<PuzzleScrollTray>(true);
+        for (int i = 0; i < trays.Length; i++)
+        {
+            if (trays[i] != null)
+            {
+                UnityEngine.Object.Destroy(trays[i].gameObject);
+            }
+        }
+    }
+
+    private void TryUnloadSceneSafely(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return;
+        var sc = SceneManager.GetSceneByName(sceneName);
+        if (sc.IsValid() && sc.isLoaded)
+        {
+            SceneManager.UnloadSceneAsync(sceneName);
+        }
     }
 
     public void QuitGame()
@@ -318,6 +386,11 @@ public class GameManager : MonoBehaviour
     {
         if (pauseStatus && currentState == GameState.Playing)
         {
+            if (currentGameData != null && currentGameData.selectedImage != null)
+            {
+                var id = currentGameData.selectedImage.name;
+                PlayPrefsManager.Instance.SaveCurrentSceneState(id, currentGameData.difficulty);
+            }
             PauseGame();
         }
     }

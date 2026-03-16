@@ -34,11 +34,14 @@ public class VictoryPage : BasePage
     private float completionTime;
     private int difficulty;
     private int starRating;
+    private static TMP_FontAsset sCjkFont;
 
     protected override void Awake()
     {
         base.Awake();
         InitializeComponents();
+        EnsureTopmost();
+        EnsureCjkFont();
     }
 
     /// <summary>
@@ -46,6 +49,22 @@ public class VictoryPage : BasePage
     /// </summary>
     private void InitializeComponents()
     {
+        if (playAgainButton == null)
+        {
+            var btn = FindByNameInChildren<Button>("ReplaytButton");
+            if (btn != null) playAgainButton = btn;
+        }
+        if (backToGalleryButton == null)
+        {
+            var btn = FindByNameInChildren<Button>("MainMenuButton");
+            if (btn != null) backToGalleryButton = btn;
+        }
+        if (difficultyText == null)
+        {
+            var t = FindByNameInChildren<TextMeshProUGUI>("DifficultText");
+            if (t != null) difficultyText = t;
+        }
+
         // 设置按钮事件
         if (playAgainButton != null)
             playAgainButton.onClick.AddListener(OnPlayAgainButtonClicked);
@@ -64,6 +83,7 @@ public class VictoryPage : BasePage
                 }
             }
         }
+        EnsureCjkFont();
     }
 
     /// <summary>
@@ -75,6 +95,10 @@ public class VictoryPage : BasePage
     {
         completionTime = time;
         difficulty = puzzleDifficulty;
+
+        EnsureTopmost();
+        transform.SetAsLastSibling();
+        EnsureCjkFont();
 
         // 显示拼图图片
         ShowPuzzleImage();
@@ -129,7 +153,7 @@ public class VictoryPage : BasePage
         {
             int minutes = Mathf.FloorToInt(completionTime / 60f);
             int seconds = Mathf.FloorToInt(completionTime % 60f);
-            completionTimeText.text = $"Time Taken: {minutes:00}:{seconds:00}";
+            completionTimeText.text = $"Time: {minutes:00}:{seconds:00}";
         }
 
         // 难度文本
@@ -143,6 +167,57 @@ public class VictoryPage : BasePage
         {
             string ratingText = GetRatingText();
             statisticsText.text = $"Rating: {ratingText}\n{GetPerformanceText()}";
+        }
+    }
+
+    private Canvas _selfCanvas;
+    private GraphicRaycaster _graphicRaycaster;
+    private CanvasGroup _canvasGroup;
+    private void EnsureTopmost()
+    {
+        if (_selfCanvas == null) _selfCanvas = GetComponent<Canvas>();
+        if (_selfCanvas == null) _selfCanvas = gameObject.AddComponent<Canvas>();
+        _selfCanvas.overrideSorting = true;
+        _selfCanvas.sortingOrder = 1000;
+
+        if (_graphicRaycaster == null) _graphicRaycaster = GetComponent<GraphicRaycaster>();
+        if (_graphicRaycaster == null) _graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
+
+        if (_canvasGroup == null) _canvasGroup = GetComponent<CanvasGroup>();
+        if (_canvasGroup == null) _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        _canvasGroup.alpha = 1f;
+        _canvasGroup.interactable = true;
+        _canvasGroup.blocksRaycasts = true;
+    }
+
+    private void EnsureCjkFont()
+    {
+        if (sCjkFont == null)
+        {
+            try
+            {
+                string[] names = new[]
+                {
+                    "Microsoft YaHei","SimHei","NSimSun","DengXian","Noto Sans CJK SC","Source Han Sans SC","PingFang SC"
+                };
+                Font f = Font.CreateDynamicFontFromOSFont(names, 32);
+                if (f != null)
+                {
+                    sCjkFont = TMP_FontAsset.CreateFontAsset(f);
+                    if (sCjkFont != null)
+                    {
+                        sCjkFont.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                        sCjkFont.name = "RuntimeCJK";
+                    }
+                }
+            }
+            catch {}
+        }
+        if (sCjkFont == null) return;
+        var tmps = GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < tmps.Length; i++)
+        {
+            if (tmps[i] != null) tmps[i].font = sCjkFont;
         }
     }
 
@@ -238,19 +313,14 @@ public class VictoryPage : BasePage
     /// </summary>
     private void OnPlayAgainButtonClicked()
     {
-        //// 使用GameManager重新开始游戏
-        //if (GameManager.Instance != null)
-        //{
-        //    var gameData = GameManager.Instance.currentGameData;
-        //    GameManager.Instance.StartNewGame(gameData.selectedImage, gameData.difficulty, gameData.showBackground);
-        //}
-        //else
-        //{
-        //    Debug.LogError("GameManager实例不存在！");
-        //}
-
-
-        JigsawGenerator.Instance.ResetPuzzle();
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("GameManager.Instance is null in OnPlayAgainButtonClicked");
+            return;
+        }
+        var gd = GameManager.Instance.currentGameData;
+        UIManager.Instance.HidePage<VictoryPage>();
+        GameManager.Instance.StartNewGame(gd.selectedImage, gd.difficulty, gd.showBackground);
     }
 
     /// <summary>
@@ -258,16 +328,24 @@ public class VictoryPage : BasePage
     /// </summary>
     private void OnBackToGalleryButtonClicked()
     {
-        // 使用GameManager返回到Gallery
-        if (GameManager.Instance != null)
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("GameManager.Instance is null in OnBackToGalleryButtonClicked");
+            return;
+        }
+        // 清理旧生成器（若存在）
+        if (JigsawGenerator.Instance != null)
         {
             JigsawGenerator.Instance.ClearPuzzles();
-            GameManager.Instance.ReturnToGallery();
         }
-        else
+        if (GameManager.Instance != null && GameManager.Instance.currentGameData != null && GameManager.Instance.currentGameData.selectedImage != null)
         {
-            Debug.LogError("GameManager实例不存在！");
+            var id = GameManager.Instance.currentGameData.selectedImage.name;
+            PlayPrefsManager.Instance.ClearPuzzleStateForImage(id);
         }
+        // BoardGen 不需要显式清理，场景卸载会销毁；直接返回 Gallery
+        UIManager.Instance.HidePage<VictoryPage>();
+        GameManager.Instance.ReturnToGallery();
     }
 
     /// <summary>
@@ -342,6 +420,16 @@ public class VictoryPage : BasePage
                 btnGroup.alpha = 0f;
             }
         }
+    }
+
+    private T FindByNameInChildren<T>(string name) where T : Component
+    {
+        var comps = GetComponentsInChildren<T>(true);
+        for (int i = 0; i < comps.Length; i++)
+        {
+            if (comps[i].name == name) return comps[i];
+        }
+        return null;
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.IO;
 
 public class PlayPrefsManager : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class PlayPrefsManager : MonoBehaviour
     private const string PUZZLE_STATE_KEY = "PuzzleState";
     private const string PUZZLE_PIECES_KEY = "PuzzlePieces";
     private const string ENCRYPTION_KEY = "JigsawFun2024";
+    private const string SAVE_INDEX_KEY = "PuzzleSaveIndex";
 
     private static PlayPrefsManager instance;
     public static PlayPrefsManager Instance
@@ -87,6 +89,11 @@ public class PlayPrefsManager : MonoBehaviour
         public PuzzlePieceData[] pieces;
     }
 
+    private string GetStateKey(string imageId)
+    {
+        return $"{PUZZLE_STATE_KEY}_{imageId}";
+    }
+
     public void SavePuzzleState(int gridSize, PuzzlePiece[] pieces)
     {
         PuzzleStateData stateData = new PuzzleStateData
@@ -129,6 +136,234 @@ public class PlayPrefsManager : MonoBehaviour
     {
         PlayerPrefs.DeleteKey(PUZZLE_STATE_KEY);
         PlayerPrefs.Save();
+    }
+
+    private System.Collections.Generic.List<string> LoadSaveIndex()
+    {
+        string raw = PlayerPrefs.GetString(SAVE_INDEX_KEY, "");
+        var list = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrEmpty(raw))
+        {
+            try
+            {
+                var arr = JsonUtility.FromJson<StringListWrapper>(raw);
+                if (arr != null && arr.items != null) list.AddRange(arr.items);
+            }
+            catch
+            {
+                string[] parts = raw.Split(',');
+                foreach (var p in parts)
+                {
+                    if (!string.IsNullOrEmpty(p)) list.Add(p);
+                }
+            }
+        }
+        return list;
+    }
+
+    private void SaveSaveIndex(System.Collections.Generic.List<string> list)
+    {
+        var wrapper = new StringListWrapper { items = list.ToArray() };
+        string json = JsonUtility.ToJson(wrapper);
+        PlayerPrefs.SetString(SAVE_INDEX_KEY, json);
+        PlayerPrefs.Save();
+    }
+
+    [System.Serializable]
+    private class StringListWrapper { public string[] items; }
+
+    public System.Collections.Generic.List<string> GetAllUnfinishedImageIds()
+    {
+        var list = LoadSaveIndex();
+        var filtered = new System.Collections.Generic.List<string>();
+        foreach (var id in list)
+        {
+            var state = LoadPuzzleStateForImage(id);
+            if (state != null && state.pieces != null && state.pieces.Length > 0)
+            {
+                bool unfinished = false;
+                for (int i = 0; i < state.pieces.Length; i++)
+                {
+                    if (!state.pieces[i].isPlaced) { unfinished = true; break; }
+                }
+                if (unfinished) filtered.Add(id);
+            }
+        }
+        SaveSaveIndex(filtered);
+        return filtered;
+    }
+
+    private void AddToSaveIndex(string imageId)
+    {
+        var list = LoadSaveIndex();
+        if (!list.Contains(imageId))
+        {
+            list.Add(imageId);
+            SaveSaveIndex(list);
+        }
+    }
+
+    private void RemoveFromSaveIndex(string imageId)
+    {
+        var list = LoadSaveIndex();
+        if (list.Remove(imageId))
+        {
+            SaveSaveIndex(list);
+        }
+    }
+
+    public void SaveCurrentSceneState(string imageId, int gridSize)
+    {
+        if (string.IsNullOrEmpty(imageId)) return;
+        // 既要保存未放置的块（有 TileMovement），也要保存已放置的块（TileMovement 已被销毁）
+        // 以 Tile GameObject 的命名规则 "TileGameObe_x_y" 为准收集全部块
+        var allRenderers = GameObject.FindObjectsOfType<SpriteRenderer>(true);
+        var pieces = new System.Collections.Generic.List<GameObject>();
+        if (allRenderers != null)
+        {
+            for (int i = 0; i < allRenderers.Length; i++)
+            {
+                var sr = allRenderers[i];
+                if (sr == null) continue;
+                var go = sr.gameObject;
+                if (go == null) continue;
+                if (go.name.StartsWith("TileGameObe_"))
+                {
+                    pieces.Add(go);
+                }
+            }
+        }
+        if (pieces.Count == 0)
+        {
+            Debug.Log($"[PlayPrefs] SaveCurrentSceneState no pieces found for image={imageId}");
+            return;
+        }
+        bool allPlaced = true;
+        int placedCount = 0;
+        int expected = Mathf.Max(1, gridSize) * Mathf.Max(1, gridSize);
+        PuzzleStateData stateData = new PuzzleStateData
+        {
+            gridSize = gridSize,
+            pieces = new PuzzlePieceData[Mathf.Max(expected, pieces.Count)]
+        };
+        // 初始化为默认（避免缺块导致数组有 null）
+        for (int idx = 0; idx < stateData.pieces.Length; idx++)
+        {
+            stateData.pieces[idx] = new PuzzlePieceData();
+        }
+
+        int filled = 0;
+        for (int p = 0; p < pieces.Count; p++)
+        {
+            var go = pieces[p];
+            if (go == null) continue;
+
+            // 解析索引
+            int cx = 0, cy = 0;
+            bool parsed = false;
+            // 期望格式：TileGameObe_x_y
+            var parts = go.name.Split('_');
+            if (parts.Length >= 3)
+            {
+                parsed = int.TryParse(parts[1], out cx) && int.TryParse(parts[2], out cy);
+            }
+            var tm = go.GetComponent<TileMovement>();
+            if (tm != null && tm.tile != null)
+            {
+                cx = tm.tile.xIndex;
+                cy = tm.tile.yIndex;
+                parsed = true;
+            }
+            if (!parsed)
+            {
+                // 回退：根据世界坐标估算所在格子索引
+                cx = Mathf.Clamp(Mathf.RoundToInt(go.transform.position.x / Tile.tileSize), 0, Mathf.Max(1, gridSize) - 1);
+                cy = Mathf.Clamp(Mathf.RoundToInt(go.transform.position.y / Tile.tileSize), 0, Mathf.Max(1, gridSize) - 1);
+            }
+            Vector3 correct = new Vector3(cx * Tile.tileSize, cy * Tile.tileSize, 0f);
+            // 已放置的块会被销毁 TileMovement，因此以此作为可靠标记；否则用位置判定兜底
+            bool placed = tm == null || (go.transform.position - correct).sqrMagnitude < 1e-4f;
+            if (placed) placedCount++;
+            if (!placed) allPlaced = false;
+            // 按格子索引映射到数组（row-major），保证数组长度为 gridSize*gridSize 时顺序稳定
+            int slot = Mathf.Clamp(cy * Mathf.Max(1, gridSize) + cx, 0, stateData.pieces.Length - 1);
+            stateData.pieces[slot] = new PuzzlePieceData
+            {
+                row = cy,
+                col = cx,
+                currentPosition = go.transform.position,
+                correctPosition = correct,
+                isPlaced = placed
+            };
+            filled++;
+        }
+        Debug.Log($"[PlayPrefs] SaveCurrentSceneState image={imageId} grid={gridSize} piecesFound={pieces.Count} expected={expected} filled={filled} placed={placedCount} allPlaced={allPlaced}");
+        if (allPlaced)
+        {
+            ClearPuzzleStateForImage(imageId);
+            RemoveFromSaveIndex(imageId);
+            return;
+        }
+        string json = JsonUtility.ToJson(stateData);
+        Debug.Log($"[PlayPrefs] JSON state for image={imageId}:\n{json}");
+        // 写入文件
+        string path = GetSaveFilePath(imageId);
+        EnsureDirectory(Path.GetDirectoryName(path));
+        File.WriteAllText(path, json);
+        Debug.Log($"[PlayPrefs] Saved to file: {path}, bytes={json.Length}");
+        // 同时写入 PlayerPrefs（作为回退）
+        string encryptedJson = EncryptData(json);
+        PlayerPrefs.SetString(GetStateKey(imageId), encryptedJson);
+        PlayerPrefs.Save();
+        Debug.Log($"[PlayPrefs] Saved key={GetStateKey(imageId)} length={encryptedJson.Length}");
+        AddToSaveIndex(imageId);
+    }
+
+    public PuzzleStateData LoadPuzzleStateForImage(string imageId)
+    {
+        if (string.IsNullOrEmpty(imageId)) return null;
+        // 优先从文件读取
+        string path = GetSaveFilePath(imageId);
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            Debug.Log($"[PlayPrefs] Load from file: {path}, jsonLen={json.Length}");
+            return JsonUtility.FromJson<PuzzleStateData>(json);
+        }
+        // 回退到 PlayerPrefs
+        string key = GetStateKey(imageId);
+        if (!PlayerPrefs.HasKey(key)) return null;
+        string encryptedJson = PlayerPrefs.GetString(key);
+        string jsonPrefs = DecryptData(encryptedJson);
+        Debug.Log($"[PlayPrefs] Load from PlayerPrefs image={imageId} key={key} jsonLen={jsonPrefs?.Length}");
+        return JsonUtility.FromJson<PuzzleStateData>(jsonPrefs);
+    }
+
+    public bool HasUnfinishedStateForImage(string imageId)
+    {
+        var state = LoadPuzzleStateForImage(imageId);
+        if (state == null || state.pieces == null || state.pieces.Length == 0) return false;
+        for (int i = 0; i < state.pieces.Length; i++)
+        {
+            if (!state.pieces[i].isPlaced) return true;
+        }
+        return false;
+    }
+
+    public void ClearPuzzleStateForImage(string imageId)
+    {
+        if (string.IsNullOrEmpty(imageId)) return;
+        string key = GetStateKey(imageId);
+        PlayerPrefs.DeleteKey(key);
+        PlayerPrefs.Save();
+        // 删除文件
+        string path = GetSaveFilePath(imageId);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log($"[PlayPrefs] Deleted save file: {path}");
+        }
+        RemoveFromSaveIndex(imageId);
     }
 
     #endregion
@@ -174,5 +409,52 @@ public class PlayPrefsManager : MonoBehaviour
             result += (char)(base64Decoded[i] ^ ENCRYPTION_KEY[i % ENCRYPTION_KEY.Length]);
         }
         return result;
+    }
+
+    private string GetSaveFilePath(string imageId)
+    {
+        string dir = Application.isEditor ? Path.Combine(Application.dataPath, "Saves") : Path.Combine(Application.persistentDataPath, "Saves");
+        string safeName = imageId.Replace('/', '_').Replace('\\', '_');
+        return Path.Combine(dir, $"puzzle_{safeName}.json");
+    }
+
+    private void EnsureDirectory(string dir)
+    {
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+    }
+
+    public void ClearAllPuzzleSaves()
+    {
+        var ids = GetAllUnfinishedImageIds();
+        for (int i = 0; i < ids.Count; i++)
+        {
+            ClearPuzzleStateForImage(ids[i]);
+        }
+        var list = new System.Collections.Generic.List<string>();
+        SaveSaveIndex(list);
+        string dirAssets = Path.Combine(Application.dataPath, "Saves");
+        if (Directory.Exists(dirAssets))
+        {
+            var files = Directory.GetFiles(dirAssets, "*.json", SearchOption.AllDirectories);
+            for (int i = 0; i < files.Length; i++)
+            {
+                try { File.Delete(files[i]); } catch {}
+            }
+        }
+        string dirPersist = Path.Combine(Application.persistentDataPath, "Saves");
+        if (Directory.Exists(dirPersist))
+        {
+            var files = Directory.GetFiles(dirPersist, "*.json", SearchOption.AllDirectories);
+            for (int i = 0; i < files.Length; i++)
+            {
+                try { File.Delete(files[i]); } catch {}
+            }
+        }
+        PlayerPrefs.DeleteKey(PUZZLE_STATE_KEY);
+        PlayerPrefs.Save();
+        Debug.Log("[PlayPrefs] Cleared all puzzle saves");
     }
 }

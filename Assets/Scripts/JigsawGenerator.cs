@@ -253,19 +253,19 @@ public class JigsawGenerator : MonoBehaviour
             }
         }
 
-        // 随机分布拼图块位置
+        // 先创建拼图底座
         OnGenerationProgress?.Invoke(0.85f);
-        RandomizePiecePositions();
+        CreatePuzzleBase();
         yield return null;
 
-        // 拼图生成完成后调整摄像机
-        OnGenerationProgress?.Invoke(0.9f);
+        // 根据底座尺寸调整摄像机（确保按宽度贴边）
+        OnGenerationProgress?.Invoke(0.1f);
         AdjustCameraToFitPuzzle();
         yield return null;
 
-        // 创建拼图底座
+        // 再随机分布拼图块
         OnGenerationProgress?.Invoke(0.95f);
-        CreatePuzzleBase();
+        RandomizePiecePositions();
         yield return null;
 
         // 完成
@@ -293,39 +293,46 @@ public class JigsawGenerator : MonoBehaviour
             mainCamera.orthographic = true;
         }
 
-        // 查找所有拼图块对象
-        //GameObject[] puzzlePieces = GameObject.FindGameObjectsWithTag("PuzzlePiece");
-        if (puzzlePieces.Count == 0)
+        // 优先使用拼图底座的边界进行适配（确保按底座宽度贴合屏幕）
+        Bounds totalBounds;
+        var baseObj = GameObject.Find("PuzzleBase");
+        var baseSr = baseObj != null ? baseObj.GetComponent<SpriteRenderer>() : null;
+        if (baseSr != null && baseSr.sprite != null)
         {
-            Debug.LogWarning("未找到任何拼图块对象，请确保拼图块有正确的Tag");
-            return;
+            totalBounds = baseSr.bounds;
         }
-
-        // 计算所有拼图块的边界
-        Bounds totalBounds = new Bounds();
-        bool boundsInitialized = false;
-
-        foreach (PuzzlePiece piece in puzzlePieces)
+        else
         {
-            Renderer renderer = piece.GetComponent<Renderer>();
-            if (renderer != null)
+            // 回退：使用所有拼图块的边界
+            if (puzzlePieces.Count == 0)
             {
-                if (!boundsInitialized)
+                Debug.LogWarning("未找到任何拼图块对象，请确保拼图块有正确的Tag");
+                return;
+            }
+            Bounds b = new Bounds();
+            bool boundsInitialized = false;
+            foreach (PuzzlePiece piece in puzzlePieces)
+            {
+                Renderer renderer = piece.GetComponent<Renderer>();
+                if (renderer != null)
                 {
-                    totalBounds = renderer.bounds;
-                    boundsInitialized = true;
-                }
-                else
-                {
-                    totalBounds.Encapsulate(renderer.bounds);
+                    if (!boundsInitialized)
+                    {
+                        b = renderer.bounds;
+                        boundsInitialized = true;
+                    }
+                    else
+                    {
+                        b.Encapsulate(renderer.bounds);
+                    }
                 }
             }
-        }
-
-        if (!boundsInitialized)
-        {
-            Debug.LogWarning("无法计算拼图块边界");
-            return;
+            if (!boundsInitialized)
+            {
+                Debug.LogWarning("无法计算拼图块边界");
+                return;
+            }
+            totalBounds = b;
         }
 
         // 设置摄像机位置到拼图中心
@@ -333,24 +340,13 @@ public class JigsawGenerator : MonoBehaviour
         mainCamera.transform.position = cameraPosition;
 
         // 计算合适的正交size，添加一些边距
-        float margin = 1.0f; // 边距
+        float margin = 0.0f;
         float requiredWidth = totalBounds.size.x + margin;
         float requiredHeight = totalBounds.size.y + margin;
 
         // 根据屏幕宽高比调整
         float aspectRatio = (float)Screen.width / Screen.height;
-        float cameraSize;
-
-        if (requiredWidth / aspectRatio > requiredHeight)
-        {
-            // 宽度是限制因素
-            cameraSize = requiredWidth / (2.0f * aspectRatio);
-        }
-        else
-        {
-            // 高度是限制因素
-            cameraSize = requiredHeight / 2.0f;
-        }
+        float cameraSize = requiredWidth / (2.0f * aspectRatio);
 
         mainCamera.orthographicSize = cameraSize;
 
