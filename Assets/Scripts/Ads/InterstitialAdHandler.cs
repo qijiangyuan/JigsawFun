@@ -100,7 +100,7 @@ namespace JigsawFun.Ads
         /// 显示插屏广告
         /// </summary>
         /// <param name="placement">广告位置标识</param>
-        public void ShowAd(string placement = "level_complete")
+        public void ShowAd(string placement = "Level_Complete")
         {
             if (!CanShowAd())
             {
@@ -187,7 +187,7 @@ namespace JigsawFun.Ads
             
             if (CanShowAd())
             {
-                ShowAd("level_complete");
+                ShowAd("Level_Complete");
             }
         }
         

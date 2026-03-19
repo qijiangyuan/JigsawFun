@@ -148,7 +148,7 @@ namespace JigsawFun.Ads
         /// 显示插屏广告
         /// </summary>
         /// <param name="placement">广告位置标识</param>
-        public void ShowInterstitial(string placement = "level_complete")
+        public void ShowInterstitial(string placement = "Level_Complete")
         {
             if (!IsInitialized)
             {

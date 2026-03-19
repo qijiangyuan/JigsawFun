@@ -524,7 +524,30 @@ public class GameplayPage : BasePage
     /// </summary>
     private void OnHintButtonClicked()
     {
-        if (hintRemaining <= 0) return;
+        if (hintRemaining <= 0)
+        {
+            // 当提示数量为0时，触发 Startup placement 的激励视频广告
+            if (AdManager.Instance != null && AdManager.Instance.CanShowRewardedVideo())
+            {
+                AdManager.Instance.ShowRewardedVideo("Startup", () => 
+                {
+                    // 广告观看完成后的回调，增加提示次数
+                    hintRemaining += 3; // 假设每次观看广告获得3个提示，您可以根据需要调整
+                    UpdateHintUI();
+                    Debug.Log("观看了激励视频，获得了提示奖励");
+                });
+            }
+            else
+            {
+                Debug.LogWarning("提示次数不足，且激励视频广告未准备好。尝试重新加载...");
+                if (AdManager.Instance != null && AdManager.Instance.RewardedHandler != null)
+                {
+                    AdManager.Instance.RewardedHandler.LoadAd();
+                }
+            }
+            return;
+        }
+
         var tm = PickHintTargetTileMovement();
         if (tm == null) return;
 
@@ -619,7 +642,9 @@ public class GameplayPage : BasePage
         }
         if (hintButton != null)
         {
-            hintButton.interactable = hintRemaining > 0 && HasAnyUnplacedTiles();
+            // 当提示次数为0时，如果广告准备好了，也可以点击（触发广告）
+            bool canUseHintOrWatchAd = (hintRemaining > 0 || (AdManager.Instance != null && AdManager.Instance.CanShowRewardedVideo()));
+            //hintButton.interactable = canUseHintOrWatchAd && HasAnyUnplacedTiles();
         }
     }
 

@@ -15,7 +15,7 @@ MonoBehaviour:
   androidAppKey: 238a6104d
   iosAppKey: YOUR_IOS_APP_KEY
   interstitialAdUnitId: 4n6dvwk98qnuygum
-  levelsBetweenInterstitials: 3
+  levelsBetweenInterstitials: 1
   interstitialCooldownTime: 30
   rewardedAdUnitId: 6ex5h29wsigzv1tl
   rewardHintCount: 3
