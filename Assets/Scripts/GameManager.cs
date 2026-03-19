@@ -56,6 +56,8 @@ public class GameManager : MonoBehaviour
     public static event Action OnGamePaused;
     public static event Action OnGameResumed;
 
+    private bool autoPausedByFocus;
+
     // 场景名称常量
     public const string MAIN_SCENE = "Main";
     public const string GAME_SCENE = "Game";
@@ -246,8 +248,28 @@ public class GameManager : MonoBehaviour
             Debug.Log($"[GameManager] Game completed - Time: {completionTime:F2}s, Stars: {currentGameData.starRating}");
         }
 
+        HidePuzzleWorldForVictory();
         ChangeGameState(GameState.Victory);
         OnGameCompleted?.Invoke(completionTime, currentGameData.starRating);
+    }
+
+    private void HidePuzzleWorldForVictory()
+    {
+        var renderers = GameObject.FindObjectsOfType<SpriteRenderer>(true);
+        if (renderers != null)
+        {
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var sr = renderers[i];
+                if (sr == null) continue;
+                var go = sr.gameObject;
+                if (go == null) continue;
+                if (go.name.StartsWith("TileGameObe_") || go.name.StartsWith("Piece_"))
+                {
+                    go.SetActive(false);
+                }
+            }
+        }
     }
 
     public void PauseGame()
@@ -290,7 +312,10 @@ public class GameManager : MonoBehaviour
         if (!string.IsNullOrEmpty(imageId))
         {
             DebugLog($"Saving progress before returning to gallery: imageId={imageId}, grid={currentGameData.difficulty}");
-            PlayPrefsManager.Instance.SaveCurrentSceneState(imageId, currentGameData.difficulty);
+            float elapsed = 0f;
+            var gp = FindObjectOfType<GameplayPage>(true);
+            if (gp != null) elapsed = Mathf.Max(0f, gp.GetCurrentGameTime());
+            PlayPrefsManager.Instance.SaveCurrentSceneState(imageId, currentGameData.difficulty, elapsed);
         }
         // 恢复 UI 到相册页面
         if (UIManager.Instance != null)
@@ -389,9 +414,18 @@ public class GameManager : MonoBehaviour
             if (currentGameData != null && currentGameData.selectedImage != null)
             {
                 var id = currentGameData.selectedImage.name;
-                PlayPrefsManager.Instance.SaveCurrentSceneState(id, currentGameData.difficulty);
+                float elapsed = 0f;
+                var gp = FindObjectOfType<GameplayPage>(true);
+                if (gp != null) elapsed = Mathf.Max(0f, gp.GetCurrentGameTime());
+                PlayPrefsManager.Instance.SaveCurrentSceneState(id, currentGameData.difficulty, elapsed);
             }
+            autoPausedByFocus = true;
             PauseGame();
+        }
+        else if (!pauseStatus && autoPausedByFocus && currentState == GameState.Paused)
+        {
+            autoPausedByFocus = false;
+            ResumeGame();
         }
     }
 
@@ -399,7 +433,13 @@ public class GameManager : MonoBehaviour
     {
         if (!hasFocus && currentState == GameState.Playing)
         {
+            autoPausedByFocus = true;
             PauseGame();
+        }
+        else if (hasFocus && autoPausedByFocus && currentState == GameState.Paused)
+        {
+            autoPausedByFocus = false;
+            ResumeGame();
         }
     }
 

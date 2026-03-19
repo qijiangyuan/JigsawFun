@@ -7,6 +7,10 @@ public class PuzzleScrollTray : MonoBehaviour
     public ScrollRect scrollRect;
     public Transform contentContainer;
     public GameObject trayItemPrefab;
+
+    public Color trayBackgroundColor = new Color(252f / 255f, 246f / 255f, 227f / 255f, 1f);
+    [Range(0.5f, 1f)]
+    public float trayBackgroundDarkenFactor = 0.95f;
     
     // Create the UI structure programmatically if not assigned
     public void Initialize()
@@ -19,12 +23,12 @@ public class PuzzleScrollTray : MonoBehaviour
             
             RectTransform svRect = svObj.AddComponent<RectTransform>();
             svRect.anchorMin = new Vector2(0, 0);
-            svRect.anchorMax = new Vector2(1, 0.15f); // Bottom 15%
+            svRect.anchorMax = new Vector2(1, 0.20f); // Bottom 15%
             svRect.offsetMin = Vector2.zero;
             svRect.offsetMax = Vector2.zero;
             
             Image bg = svObj.AddComponent<Image>();
-            bg.color = new Color(1, 1, 1, 0.8f); // Semi-transparent white background
+            bg.color = GetTrayBackgroundColor();
             
             scrollRect = svObj.AddComponent<ScrollRect>();
             scrollRect.horizontal = true;
@@ -65,6 +69,26 @@ public class PuzzleScrollTray : MonoBehaviour
             scrollRect.content = cRect;
             contentContainer = content.transform;
         }
+        ApplyTrayBackgroundColor();
+    }
+
+    private void ApplyTrayBackgroundColor()
+    {
+        if (scrollRect == null) return;
+        var img = scrollRect.GetComponent<Image>();
+        if (img == null) return;
+        img.color = GetTrayBackgroundColor();
+    }
+
+    private Color GetTrayBackgroundColor()
+    {
+        float f = Mathf.Clamp01(trayBackgroundDarkenFactor);
+        return new Color(
+            Mathf.Clamp01(trayBackgroundColor.r * f),
+            Mathf.Clamp01(trayBackgroundColor.g * f),
+            Mathf.Clamp01(trayBackgroundColor.b * f),
+            trayBackgroundColor.a
+        );
     }
     
     public void AddPiece(GameObject piece)

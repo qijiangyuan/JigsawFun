@@ -27,18 +27,24 @@ public class GalleryPage : BasePage
     public bool centerCategoryToggles = true;
 
     private ImageCropperModal cropper;
+    private Sprite roundedUiSprite;
 
     [Header("类别数据")]
     public List<CategoryData> categories = new List<CategoryData>();
     private string userCategoryName = "My Picture";
     private int userCategoryIndex = -1;
     private int inProgressIndex = -1;
+    private int completedIndex = -1;
 
     private int currentCategoryIndex = 0;
     private List<Toggle> categoryToggles = new List<Toggle>();
     private List<Button> imageButtons = new List<Button>();
     private ToggleGroup categoryToggleGroup;
     private List<int> categoryIndexByToggle = new List<int>();
+
+    private Toggle progressInProgressToggle;
+    private Toggle progressCompletedToggle;
+    private RectTransform progressTabBar;
 
     [Header("Footer Navigation")]
     public Toggle footerGalleryToggle;
@@ -223,7 +229,7 @@ public class GalleryPage : BasePage
     {
         int idx = FindFirstNormalCategoryIndex();
         if (lastNormalCategoryIndex >= 0 && lastNormalCategoryIndex < categories.Count &&
-            lastNormalCategoryIndex != userCategoryIndex && lastNormalCategoryIndex != inProgressIndex)
+            lastNormalCategoryIndex != userCategoryIndex && lastNormalCategoryIndex != inProgressIndex && lastNormalCategoryIndex != completedIndex)
         {
             idx = lastNormalCategoryIndex;
         }
@@ -244,7 +250,7 @@ public class GalleryPage : BasePage
     {
         for (int i = 0; i < categories.Count; i++)
         {
-            if (i != userCategoryIndex && i != inProgressIndex) return i;
+            if (i != userCategoryIndex && i != inProgressIndex && i != completedIndex) return i;
         }
         return 0;
     }
@@ -252,18 +258,12 @@ public class GalleryPage : BasePage
     private void UpdateFooterToggleStates()
     {
         suppressFooterCallback = true;
-        if (currentCategoryIndex == userCategoryIndex)
-        {
-            if (footerMyPictureToggle != null) footerMyPictureToggle.SetIsOnWithoutNotify(true);
-        }
-        else if (currentCategoryIndex == inProgressIndex)
-        {
-            if (footerInProgressToggle != null) footerInProgressToggle.SetIsOnWithoutNotify(true);
-        }
-        else
-        {
-            if (footerGalleryToggle != null) footerGalleryToggle.SetIsOnWithoutNotify(true);
-        }
+        bool isMyPicture = currentCategoryIndex == userCategoryIndex;
+        bool isInProgress = currentCategoryIndex == inProgressIndex || currentCategoryIndex == completedIndex;
+        bool isGallery = !isMyPicture && !isInProgress;
+        if (footerGalleryToggle != null) footerGalleryToggle.SetIsOnWithoutNotify(isGallery);
+        if (footerMyPictureToggle != null) footerMyPictureToggle.SetIsOnWithoutNotify(isMyPicture);
+        if (footerInProgressToggle != null) footerInProgressToggle.SetIsOnWithoutNotify(isInProgress);
         suppressFooterCallback = false;
     }
 
@@ -317,6 +317,7 @@ public class GalleryPage : BasePage
     {
         if (cameraChoicePanel == null)
         {
+            roundedUiSprite = RoundedRectSpriteCache.Get(64, 16);
             var panel = new GameObject("CameraChoicePanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             panel.transform.SetParent(transform, false);
             var rect = panel.GetComponent<RectTransform>();
@@ -335,9 +336,11 @@ public class GalleryPage : BasePage
             cRect.anchorMax = new Vector2(0.5f, 0.5f);
             cRect.anchoredPosition = Vector2.zero;
             var cBg = container.GetComponent<Image>();
-            cBg.color = new Color(1, 1, 1, 0.95f);
+            cBg.color = new Color(252f / 255f, 246f / 255f, 227f / 255f, 1f);
+            cBg.sprite = roundedUiSprite;
+            cBg.type = Image.Type.Sliced;
 
-            Button MakeBtn(string name, Vector2 pos, string text, UnityEngine.Events.UnityAction onClick)
+            Button MakeBtn(string name, Vector2 pos, string text, Color buttonColor, UnityEngine.Events.UnityAction onClick)
             {
                 var btnObj = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
                 btnObj.transform.SetParent(container.transform, false);
@@ -347,7 +350,9 @@ public class GalleryPage : BasePage
                 r.anchorMax = new Vector2(0.5f, 0.5f);
                 r.anchoredPosition = pos;
                 var img = btnObj.GetComponent<Image>();
-                img.color = new Color(0.2f, 0.6f, 1f, 1f);
+                img.color = buttonColor;
+                img.sprite = roundedUiSprite;
+                img.type = Image.Type.Sliced;
                 var btn = btnObj.GetComponent<Button>();
                 btn.onClick.AddListener(onClick);
                 var txtObj = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
@@ -366,12 +371,12 @@ public class GalleryPage : BasePage
                 return btn;
             }
 
-            var takeBtn = MakeBtn("TakePhotoButton", new Vector2(-120, 0), "Camera", () =>
+            var takeBtn = MakeBtn("TakePhotoButton", new Vector2(-120, 0), "Camera", new Color(4f / 255f, 193f / 255f, 195f / 255f, 1f), () =>
             {
                 CloseCameraChoice();
                 CameraManager.Instance.TakePhoto();
             });
-            var pickBtn = MakeBtn("PickGalleryButton", new Vector2(120, 0), "Album", () =>
+            var pickBtn = MakeBtn("PickGalleryButton", new Vector2(120, 0), "Album", new Color(255f / 255f, 120f / 255f, 77f / 255f, 1f), () =>
             {
                 CloseCameraChoice();
                 CameraManager.Instance.PickImageFromGallery();
@@ -470,6 +475,10 @@ public class GalleryPage : BasePage
         CategoryData inProgressCategory = new CategoryData("InProgress");
         categories.Add(inProgressCategory);
         inProgressIndex = categories.Count - 1;
+        // 添加“Completed”类别（紧随 InProgress）
+        CategoryData completedCategory = new CategoryData("Completed");
+        categories.Add(completedCategory);
+        completedIndex = categories.Count - 1;
 
         Debug.Log($"初始化完成，共加载 {categories.Count} 个类别");
     }
@@ -502,7 +511,7 @@ public class GalleryPage : BasePage
         // 创建类别Toggle
         for (int i = 0; i < categories.Count; i++)
         {
-            if (i == userCategoryIndex || i == inProgressIndex)
+            if (i == userCategoryIndex || i == inProgressIndex || i == completedIndex)
             {
                 continue;
             }
@@ -688,7 +697,10 @@ public class GalleryPage : BasePage
         if (titleText == null) return;
         string text = "Gallery";
         if (tab == FooterTab.MyPicture) text = "MyPicture";
-        else if (tab == FooterTab.InProgress) text = "InProgress";
+        else if (tab == FooterTab.InProgress)
+        {
+            text = currentCategoryIndex == completedIndex ? "Completed" : "InProgress";
+        }
         titleText.text = text;
         UpdateTitleBackgroundSize();
     }
@@ -704,7 +716,7 @@ public class GalleryPage : BasePage
 
         currentCategoryIndex = categoryIndex;
         Debug.Log($"[Gallery] ShowCategory index={categoryIndex}, name={categories[categoryIndex].categoryName}");
-        if (currentCategoryIndex != userCategoryIndex && currentCategoryIndex != inProgressIndex)
+        if (currentCategoryIndex != userCategoryIndex && currentCategoryIndex != inProgressIndex && currentCategoryIndex != completedIndex)
         {
             lastNormalCategoryIndex = currentCategoryIndex;
         }
@@ -716,10 +728,18 @@ public class GalleryPage : BasePage
 
     private void UpdateTopCategoryVisibility()
     {
-        bool showTop = currentCategoryIndex != userCategoryIndex && currentCategoryIndex != inProgressIndex;
+        bool inProgressTab = currentCategoryIndex == inProgressIndex || currentCategoryIndex == completedIndex;
+        bool showTop = currentCategoryIndex != userCategoryIndex && !inProgressTab;
         // 只隐藏顶部分类按钮，不要隐藏包含图片网格的容器（避免误把整个内容区域隐藏掉）
         if (categoryToggleParent != null) categoryToggleParent.gameObject.SetActive(showTop);
         // 不要在这里 SetActive(categoryScrollRect)，因为在部分场景结构里它可能是更大的容器，会把图片网格一起隐藏
+
+        for (int i = 0; i < categoryToggles.Count; i++)
+        {
+            if (categoryToggles[i] != null) categoryToggles[i].gameObject.SetActive(showTop);
+        }
+        EnsureProgressTabToggles();
+        if (progressTabBar != null) progressTabBar.gameObject.SetActive(inProgressTab);
     }
 
     /// <summary>
@@ -736,6 +756,62 @@ public class GalleryPage : BasePage
                 categoryToggles[i].SetIsOnWithoutNotify(mapped == currentCategoryIndex);
             }
         }
+        EnsureProgressTabToggles();
+        if (progressInProgressToggle != null) progressInProgressToggle.SetIsOnWithoutNotify(currentCategoryIndex == inProgressIndex);
+        if (progressCompletedToggle != null) progressCompletedToggle.SetIsOnWithoutNotify(currentCategoryIndex == completedIndex);
+        if (progressInProgressToggle != null) progressInProgressToggle.gameObject.SetActive(currentCategoryIndex == inProgressIndex || currentCategoryIndex == completedIndex);
+        if (progressCompletedToggle != null) progressCompletedToggle.gameObject.SetActive(currentCategoryIndex == inProgressIndex || currentCategoryIndex == completedIndex);
+    }
+
+    private void EnsureProgressTabToggles()
+    {
+        if (categoryTogglePrefab == null || categoryToggleGroup == null) return;
+
+        if (progressTabBar == null)
+        {
+            var barGo = new GameObject("ProgressTabBar", typeof(RectTransform));
+            barGo.transform.SetParent(transform, false);
+            progressTabBar = barGo.GetComponent<RectTransform>();
+            progressTabBar.anchorMin = new Vector2(0f, 1f);
+            progressTabBar.anchorMax = new Vector2(1f, 1f);
+            progressTabBar.pivot = new Vector2(0.5f, 1f);
+            progressTabBar.anchoredPosition = new Vector2(0f, -267f);
+            progressTabBar.sizeDelta = new Vector2(0f, 90f);
+            var hlg = barGo.AddComponent<HorizontalLayoutGroup>();
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = false;
+            hlg.childControlHeight = false;
+            hlg.spacing = 20;
+            hlg.padding = new RectOffset(20, 20, 0, 0);
+        }
+
+        if (progressInProgressToggle != null && progressCompletedToggle != null) return;
+
+        Toggle Make(string name, string text, int categoryIndex)
+        {
+            Toggle t = Instantiate(categoryTogglePrefab, progressTabBar);
+            t.name = name;
+            t.gameObject.SetActive(false);
+            t.group = categoryToggleGroup;
+            var tmp = t.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null) tmp.text = text;
+            t.onValueChanged.RemoveAllListeners();
+            t.onValueChanged.AddListener(isOn =>
+            {
+                if (!isOn) return;
+                ShowCategory(categoryIndex);
+            });
+            return t;
+        }
+
+        if (progressInProgressToggle == null && inProgressIndex >= 0)
+        {
+            progressInProgressToggle = Make("ProgressTab_InProgress", "InProgress", inProgressIndex);
+        }
+        if (progressCompletedToggle == null && completedIndex >= 0)
+        {
+            progressCompletedToggle = Make("ProgressTab_Completed", "Completed", completedIndex);
+        }
     }
 
     /// <summary>
@@ -749,6 +825,8 @@ public class GalleryPage : BasePage
         int beforeChildren = imageGridParent != null ? imageGridParent.childCount : -1;
         var empty = imageGridParent != null ? imageGridParent.Find("InProgressEmptyText") : null;
         if (empty != null) DestroyImmediate(empty.gameObject);
+        var emptyCompleted = imageGridParent != null ? imageGridParent.Find("CompletedEmptyText") : null;
+        if (emptyCompleted != null) DestroyImmediate(emptyCompleted.gameObject);
 
         // 清除现有图片按钮
         foreach (Button btn in imageButtons)
@@ -805,6 +883,57 @@ public class GalleryPage : BasePage
                 Image btnImage = imageBtn.transform.Find("PuzzleImage")?.GetComponent<Image>();
                 if (btnImage != null) btnImage.sprite = imageSprite;
                 imageBtn.onClick.AddListener(() => OnInProgressItemClicked(imageId, imageSprite));
+                imageButtons.Add(imageBtn);
+            }
+            goto ResetScroll;
+        }
+
+        if (currentCategoryIndex == completedIndex)
+        {
+            if (cameraButton != null) cameraButton.gameObject.SetActive(false);
+            var list = PlayPrefsManager.Instance.GetCompletedPuzzles();
+            if (list == null || list.Count == 0)
+            {
+                if (imageGridParent != null)
+                {
+                    for (int c = imageGridParent.childCount - 1; c >= 0; c--)
+                    {
+                        DestroyImmediate(imageGridParent.GetChild(c).gameObject);
+                    }
+                }
+                GameObject tObj = new GameObject("CompletedEmptyText");
+                tObj.transform.SetParent(imageGridParent, false);
+                var rt = tObj.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+                rt.sizeDelta = new Vector2(680f, 80f);
+                TextMeshProUGUI emptyText = tObj.AddComponent<TextMeshProUGUI>();
+                emptyText.alignment = TextAlignmentOptions.Center;
+                emptyText.fontSize = 34;
+                emptyText.color = new Color(0.2f, 0.2f, 0.25f, 1f);
+                emptyText.text = "No completed puzzles";
+                goto ResetScroll;
+            }
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var entry = list[i];
+                if (entry == null || string.IsNullOrEmpty(entry.imageId)) continue;
+
+                Sprite imageSprite = FindSpriteByName(entry.imageId);
+                if (imageSprite == null) imageSprite = PlayPrefsManager.Instance.LoadCompletedPreviewSprite(entry.imageId);
+                if (imageSprite == null) continue;
+
+                Button imageBtn = Instantiate(imageButtonPrefab, imageGridParent);
+                imageBtn.gameObject.SetActive(true);
+                Image btnImage = imageBtn.transform.Find("PuzzleImage")?.GetComponent<Image>();
+                if (btnImage != null) btnImage.sprite = imageSprite;
+                string id = entry.imageId;
+                int diff = entry.difficulty;
+                float time = entry.completionTimeSeconds;
+                imageBtn.onClick.AddListener(() => ShowCompletedDetail(id, diff, time, imageSprite));
                 imageButtons.Add(imageBtn);
             }
             goto ResetScroll;
@@ -889,6 +1018,151 @@ public class GalleryPage : BasePage
         for (int i = 0; i < state.pieces.Length; i++) if (state.pieces[i].isPlaced) placed++;
         Debug.Log($"[Gallery] Continue with save: grid={state.gridSize}, placed={placed}/{state.pieces.Length}");
         GameManager.Instance.StartNewGame(sprite, state.gridSize, true);
+    }
+
+    private GameObject completedDetailModal;
+    private Image completedDetailPreview;
+    private TextMeshProUGUI completedDetailText;
+    private Button completedDetailDeleteButton;
+    private string completedDetailCurrentImageId;
+
+    private void EnsureCompletedDetailModal()
+    {
+        if (completedDetailModal != null) return;
+
+        roundedUiSprite = RoundedRectSpriteCache.Get(64, 16);
+        completedDetailModal = new GameObject("CompletedDetailModal", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        completedDetailModal.transform.SetParent(transform, false);
+        var rt = completedDetailModal.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        var bg = completedDetailModal.GetComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.7f);
+
+        var panel = new GameObject("Panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        panel.transform.SetParent(completedDetailModal.transform, false);
+        var prt = panel.GetComponent<RectTransform>();
+        prt.anchorMin = new Vector2(0.5f, 0.5f);
+        prt.anchorMax = new Vector2(0.5f, 0.5f);
+        prt.pivot = new Vector2(0.5f, 0.5f);
+        prt.sizeDelta = new Vector2(860f, 1200f);
+        var pimg = panel.GetComponent<Image>();
+        pimg.color = new Color(252f / 255f, 246f / 255f, 227f / 255f, 1f);
+        pimg.sprite = roundedUiSprite;
+        pimg.type = Image.Type.Sliced;
+
+        var previewGo = new GameObject("Preview", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        previewGo.transform.SetParent(panel.transform, false);
+        completedDetailPreview = previewGo.GetComponent<Image>();
+        var prevRt = previewGo.GetComponent<RectTransform>();
+        prevRt.anchorMin = new Vector2(0.5f, 1f);
+        prevRt.anchorMax = new Vector2(0.5f, 1f);
+        prevRt.pivot = new Vector2(0.5f, 1f);
+        prevRt.anchoredPosition = new Vector2(0f, -80f);
+        prevRt.sizeDelta = new Vector2(720f, 720f);
+        completedDetailPreview.preserveAspect = true;
+
+        var textGo = new GameObject("InfoText", typeof(RectTransform), typeof(CanvasRenderer));
+        textGo.transform.SetParent(panel.transform, false);
+        completedDetailText = textGo.AddComponent<TextMeshProUGUI>();
+        var trt = textGo.GetComponent<RectTransform>();
+        trt.anchorMin = new Vector2(0.5f, 0f);
+        trt.anchorMax = new Vector2(0.5f, 0f);
+        trt.pivot = new Vector2(0.5f, 0f);
+        trt.anchoredPosition = new Vector2(0f, 280f);
+        trt.sizeDelta = new Vector2(760f, 100f);
+        completedDetailText.alignment = TextAlignmentOptions.Center;
+        completedDetailText.fontSize = 40;
+        completedDetailText.color = new Color(0.15f, 0.15f, 0.2f, 1f);
+
+        var closeGo = new GameObject("CloseButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        closeGo.transform.SetParent(panel.transform, false);
+        var crt = closeGo.GetComponent<RectTransform>();
+        crt.anchorMin = new Vector2(0.5f, 0f);
+        crt.anchorMax = new Vector2(0.5f, 0f);
+        crt.pivot = new Vector2(0.5f, 0f);
+        crt.anchoredPosition = new Vector2(0f, 40f);
+        crt.sizeDelta = new Vector2(420f, 90f);
+        var closeImg = closeGo.GetComponent<Image>();
+        closeImg.color = new Color(0.15f, 0.75f, 0.78f, 1f);
+        closeImg.sprite = roundedUiSprite;
+        closeImg.type = Image.Type.Sliced;
+        var btn = closeGo.GetComponent<Button>();
+        btn.onClick.AddListener(() => completedDetailModal.SetActive(false));
+
+        var closeTextGo = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer));
+        closeTextGo.transform.SetParent(closeGo.transform, false);
+        var closeText = closeTextGo.AddComponent<TextMeshProUGUI>();
+        closeText.text = "Close";
+        closeText.alignment = TextAlignmentOptions.Center;
+        closeText.fontSize = 38;
+        closeText.color = Color.white;
+        var closeTextRt = closeText.rectTransform;
+        closeTextRt.anchorMin = Vector2.zero;
+        closeTextRt.anchorMax = Vector2.one;
+        closeTextRt.offsetMin = Vector2.zero;
+        closeTextRt.offsetMax = Vector2.zero;
+
+        var bgBtn = completedDetailModal.AddComponent<Button>();
+        bgBtn.transition = Selectable.Transition.None;
+        bgBtn.onClick.AddListener(() => completedDetailModal.SetActive(false));
+
+        var delGo = new GameObject("DeleteButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        delGo.transform.SetParent(panel.transform, false);
+        var drt = delGo.GetComponent<RectTransform>();
+        drt.anchorMin = new Vector2(0.5f, 0f);
+        drt.anchorMax = new Vector2(0.5f, 0f);
+        drt.pivot = new Vector2(0.5f, 0f);
+        drt.anchoredPosition = new Vector2(0f, 150f);
+        drt.sizeDelta = new Vector2(420f, 90f);
+        var delImg = delGo.GetComponent<Image>();
+        delImg.color = new Color(0.9f, 0.25f, 0.25f, 1f);
+        delImg.sprite = roundedUiSprite;
+        delImg.type = Image.Type.Sliced;
+        completedDetailDeleteButton = delGo.GetComponent<Button>();
+        completedDetailDeleteButton.onClick.AddListener(OnCompletedDeleteClicked);
+
+        var delTextGo = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer));
+        delTextGo.transform.SetParent(delGo.transform, false);
+        var delText = delTextGo.AddComponent<TextMeshProUGUI>();
+        delText.text = "Delete";
+        delText.alignment = TextAlignmentOptions.Center;
+        delText.fontSize = 38;
+        delText.color = Color.white;
+        var delTextRt = delText.rectTransform;
+        delTextRt.anchorMin = Vector2.zero;
+        delTextRt.anchorMax = Vector2.one;
+        delTextRt.offsetMin = Vector2.zero;
+        delTextRt.offsetMax = Vector2.zero;
+
+        completedDetailModal.SetActive(false);
+    }
+
+    private void ShowCompletedDetail(string imageId, int difficulty, float completionTimeSeconds, Sprite preview)
+    {
+        EnsureCompletedDetailModal();
+        completedDetailCurrentImageId = imageId;
+        if (completedDetailPreview != null) completedDetailPreview.sprite = preview;
+        if (completedDetailText != null)
+        {
+            int minutes = Mathf.FloorToInt(completionTimeSeconds / 60f);
+            int seconds = Mathf.FloorToInt(completionTimeSeconds % 60f);
+            completedDetailText.text = $"Difficulty: {difficulty}x{difficulty}\nTime: {minutes:00}:{seconds:00}";
+        }
+        completedDetailModal.SetActive(true);
+    }
+
+    private void OnCompletedDeleteClicked()
+    {
+        if (string.IsNullOrEmpty(completedDetailCurrentImageId)) return;
+        PlayPrefsManager.Instance.RemoveCompletedPuzzle(completedDetailCurrentImageId);
+        completedDetailModal.SetActive(false);
+        if (currentCategoryIndex == completedIndex)
+        {
+            SetupImageGrid();
+        }
     }
 
     private static Sprite addSpriteCache;

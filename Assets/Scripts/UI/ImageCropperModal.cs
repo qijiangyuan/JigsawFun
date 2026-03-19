@@ -75,7 +75,9 @@ public class ImageCropperModal : MonoBehaviour, IBeginDragHandler, IDragHandler
         panelRt.pivot = new Vector2(0.5f, 0.5f);
         panelRt.sizeDelta = new Vector2(900f, 1400f);
         var panelImg = panel.AddComponent<Image>();
-        panelImg.color = new Color(0.95f, 0.95f, 0.97f, 1f);
+        panelImg.color = new Color(252f / 255f, 246f / 255f, 227f / 255f, 1f);
+        panelImg.sprite = RoundedRectSpriteCache.Get(64, 16);
+        panelImg.type = Image.Type.Sliced;
 
         var titleGo = new GameObject("Title", typeof(RectTransform));
         titleGo.transform.SetParent(panelRt, false);
@@ -186,6 +188,8 @@ public class ImageCropperModal : MonoBehaviour, IBeginDragHandler, IDragHandler
         rt.sizeDelta = new Vector2(340f, 90f);
         var img = go.AddComponent<Image>();
         img.color = color;
+        img.sprite = RoundedRectSpriteCache.Get(64, 16);
+        img.type = Image.Type.Sliced;
         var btn = go.AddComponent<Button>();
         var tGo = new GameObject("Text", typeof(RectTransform));
         tGo.transform.SetParent(rt, false);
@@ -347,7 +351,7 @@ public class ImageCropperModal : MonoBehaviour, IBeginDragHandler, IDragHandler
         if (source == null) return null;
         if (source.isReadable) return source;
 
-        RenderTexture rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+        RenderTexture rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
         Graphics.Blit(source, rt);
         RenderTexture prev = RenderTexture.active;
         RenderTexture.active = rt;

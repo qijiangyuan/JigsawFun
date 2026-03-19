@@ -17,6 +17,8 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
     public float dragScaleMultiplier = 1.0f;
     public float dragScaleInDuration = 0.2f;
     public float dragScaleOutDuration = 0.2f;
+    private int lastDragSoundFrame = -1;
+    public float trayDragUpOffsetFactor = 0.5f;
 
     void Awake()
     {
@@ -63,6 +65,7 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
         if (Mathf.Abs(eventData.delta.y) > Mathf.Abs(eventData.delta.x))
         {
             isDraggingPiece = true;
+            TryPlayDragSound();
             
             // Start dragging piece
             // Dim UI
@@ -78,13 +81,23 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
             
             // Bring to top
             SpriteRenderer sr = worldPiece.GetComponent<SpriteRenderer>();
-            if (sr != null) Tile.tilesSorting.BringToTop(sr);
+            if (sr != null) PieceSorting.SetDragging(sr);
         }
         else
         {
             isDraggingPiece = false;
             // Hand over to ScrollRect
             if (scrollRect != null) scrollRect.OnBeginDrag(eventData);
+        }
+    }
+
+    private void TryPlayDragSound()
+    {
+        if (Time.frameCount == lastDragSoundFrame) return;
+        lastDragSoundFrame = Time.frameCount;
+        if (JigsawFun.Audio.AudioManager.Instance != null && JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Drag"))
+        {
+            JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Drag");
         }
     }
 
@@ -131,6 +144,8 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
                 // 留在玩家松手的位置（不自动放回托盘）
                 worldPiece.transform.DOKill();
                 worldPiece.transform.DOScale(worldOriginalScale, dragScaleOutDuration).SetEase(Ease.OutSine);
+                var sr = worldPiece.GetComponent<SpriteRenderer>();
+                if (sr != null) PieceSorting.SetLastReleased(sr);
                 Destroy(gameObject);
             }
         }
@@ -152,8 +167,8 @@ public class PuzzleTrayItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
         if (sr != null)
         {
             Vector3 centerOffset = sr.bounds.center - worldPiece.transform.position;
-            float factor = tm != null ? tm.dragUpOffsetFactor : 0.2f;
-            float up = sr.bounds.size.y * factor;
+            float factor = trayDragUpOffsetFactor;
+            float up = sr.bounds.size.y * Mathf.Max(0f, factor);
             worldPiece.transform.position = mouseWp - centerOffset + new Vector3(0f, up, 0f);
         }
         else

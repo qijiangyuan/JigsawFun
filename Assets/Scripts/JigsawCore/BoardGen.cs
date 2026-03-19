@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.NetworkInformation;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
@@ -50,6 +51,8 @@ public class BoardGen : MonoBehaviour
     public float panSpeed = 1f;
     [Header("适配")]
     public float boardEdgeMargin = 0.02f;
+    public bool fitToPuzzleArea = true;
+    public float minBoardEdgeMarginWhenFitting = 0.25f;
     [Header("结算")]
     private int tilesInPlace = 0;
     private int tilesTotal = 0;
@@ -197,7 +200,7 @@ public class BoardGen : MonoBehaviour
         if (source == null) return null;
         if (source.isReadable) return source;
 
-        RenderTexture rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+        RenderTexture rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
         Graphics.Blit(source, rt);
         RenderTexture prev = RenderTexture.active;
         RenderTexture.active = rt;
@@ -466,15 +469,104 @@ ComputeCamera:
         float totalWidth = puzzleBoardWidth;
         float totalHeight = puzzleBoardHeight;
 
-        float aspectRatio = (float)Screen.width / Screen.height;
-        float requiredSizeForWidth = totalWidth / (2.0f * aspectRatio);
-        float requiredSizeForHeight = totalHeight / 2.0f;
-        float marginFactor = 1f + Mathf.Max(0f, boardEdgeMargin);
+        float screenW = Mathf.Max(1f, Screen.width);
+        float screenH = Mathf.Max(1f, Screen.height);
+        float aspectRatio = screenW / screenH;
+
+        float visibleW = screenW;
+        float visibleH = screenH;
+        if (fitToPuzzleArea)
+        {
+            Rect r = GetBoardViewportScreenRect();
+            if (r.width > 10f && r.height > 10f)
+            {
+                visibleW = Mathf.Clamp(r.width, 1f, screenW);
+                visibleH = Mathf.Clamp(r.height, 1f, screenH);
+            }
+        }
+
+        float requiredSizeForWidth = totalWidth / (2.0f * aspectRatio) * (screenW / Mathf.Max(1f, visibleW));
+        float requiredSizeForHeight = totalHeight / 2.0f * (screenH / Mathf.Max(1f, visibleH));
+        float margin = Mathf.Max(0f, boardEdgeMargin);
+        if (fitToPuzzleArea) margin = Mathf.Max(margin, Mathf.Max(0f, minBoardEdgeMarginWhenFitting));
+        float marginFactor = 1f + margin;
         float cameraSize = Mathf.Max(requiredSizeForWidth, requiredSizeForHeight) * marginFactor;
 
         Camera.main.orthographicSize = cameraSize;
 
         Debug.Log($"摄像机设置: 拼图盘({puzzleBoardWidth}x{puzzleBoardHeight}), 中心({cx},{cy}), 正交大小={cameraSize}");
+    }
+
+    private Rect GetBoardViewportScreenRect()
+    {
+        var gp = UnityEngine.Object.FindObjectOfType<GameplayPage>(true);
+        if (gp != null && gp.puzzleArea != null)
+        {
+            Rect pr = GetRectTransformScreenRect(gp.puzzleArea);
+            if (pr.width > 10f && pr.height > 10f) return pr;
+        }
+
+        Rect safe = Screen.safeArea;
+        if (safe.width <= 1f || safe.height <= 1f) safe = new Rect(0f, 0f, Screen.width, Screen.height);
+
+        float yMin = safe.yMin;
+        float yMax = safe.yMax;
+
+        if (menu != null)
+        {
+            if (menu.panelTopPanel != null && menu.panelTopPanel.activeInHierarchy)
+            {
+                var rt = menu.panelTopPanel.GetComponent<RectTransform>();
+                Rect tr = GetRectTransformScreenRect(rt);
+                if (tr.width > 10f && tr.height > 10f) yMax = Mathf.Min(yMax, tr.yMin);
+            }
+            if (menu.panelBottomPanel != null && menu.panelBottomPanel.activeInHierarchy)
+            {
+                var rt = menu.panelBottomPanel.GetComponent<RectTransform>();
+                Rect br = GetRectTransformScreenRect(rt);
+                if (br.width > 10f && br.height > 10f) yMin = Mathf.Max(yMin, br.yMax);
+            }
+        }
+
+        var tray = UnityEngine.Object.FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray != null && tray.scrollRect != null && tray.scrollRect.gameObject.activeInHierarchy)
+        {
+            Rect tr = GetRectTransformScreenRect(tray.scrollRect.GetComponent<RectTransform>());
+            if (tr.width > 10f && tr.height > 10f) yMin = Mathf.Max(yMin, tr.yMax);
+        }
+
+        if (yMax - yMin < 10f) return safe;
+        return Rect.MinMaxRect(safe.xMin, yMin, safe.xMax, yMax);
+    }
+
+    private Rect GetRectTransformScreenRect(RectTransform rt)
+    {
+        if (rt == null) return new Rect(0f, 0f, 0f, 0f);
+        var corners = new Vector3[4];
+        rt.GetWorldCorners(corners);
+        Canvas canvas = rt.GetComponentInParent<Canvas>();
+        Camera uiCam = null;
+        if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            uiCam = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+        }
+        float minX = float.PositiveInfinity;
+        float minY = float.PositiveInfinity;
+        float maxX = float.NegativeInfinity;
+        float maxY = float.NegativeInfinity;
+        for (int i = 0; i < 4; i++)
+        {
+            Vector2 s = RectTransformUtility.WorldToScreenPoint(uiCam, corners[i]);
+            if (s.x < minX) minX = s.x;
+            if (s.y < minY) minY = s.y;
+            if (s.x > maxX) maxX = s.x;
+            if (s.y > maxY) maxY = s.y;
+        }
+        if (!float.IsFinite(minX) || !float.IsFinite(minY) || !float.IsFinite(maxX) || !float.IsFinite(maxY))
+        {
+            return new Rect(0f, 0f, 0f, 0f);
+        }
+        return Rect.MinMaxRect(minX, minY, maxX, maxY);
     }
 
     public static GameObject CreateGameObjectFromTile(Tile tile)
@@ -953,6 +1045,162 @@ ComputeCamera:
         StartCoroutine(Coroutine_Shuffle());
     }
 
+    public float recallToTrayDuration = 0.35f;
+    public float recallToTrayScale = 0.25f;
+    public float recallToTrayStagger = 0.02f;
+    public Ease recallToTrayEase = Ease.InOutCubic;
+
+    public void MoveUnplacedTilesToTray()
+    {
+        StartCoroutine(Coroutine_MoveUnplacedTilesToTray());
+    }
+
+    private IEnumerator Coroutine_MoveUnplacedTilesToTray()
+    {
+        PuzzleScrollTray tray = FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray == null)
+        {
+            GameObject trayObj = new GameObject("PuzzleScrollTray", typeof(RectTransform));
+            trayObj.transform.SetParent(GameObject.Find("Canvas")?.transform ?? FindObjectOfType<Canvas>()?.transform, false);
+            RectTransform trayRect = trayObj.GetComponent<RectTransform>();
+            trayRect.anchorMin = Vector2.zero;
+            trayRect.anchorMax = Vector2.one;
+            trayRect.offsetMin = Vector2.zero;
+            trayRect.offsetMax = Vector2.zero;
+            tray = trayObj.AddComponent<PuzzleScrollTray>();
+            tray.Initialize();
+        }
+
+        tray.Clear();
+
+        var tiles = FindObjectsOfType<TileMovement>(true);
+        if (tiles == null || tiles.Length == 0) yield break;
+
+        Array.Sort(tiles, (a, b) =>
+        {
+            if (a == null && b == null) return 0;
+            if (a == null) return 1;
+            if (b == null) return -1;
+            int ay = a.tile != null ? a.tile.yIndex : 0;
+            int ax = a.tile != null ? a.tile.xIndex : 0;
+            int by = b.tile != null ? b.tile.yIndex : 0;
+            int bx = b.tile != null ? b.tile.xIndex : 0;
+            int cy = ay.CompareTo(by);
+            if (cy != 0) return cy;
+            return ax.CompareTo(bx);
+        });
+
+        var activeTiles = new List<TileMovement>();
+        var inactiveTiles = new List<TileMovement>();
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            var tm = tiles[i];
+            if (tm == null || tm.gameObject == null) continue;
+            if (tm.gameObject.activeSelf) activeTiles.Add(tm);
+            else inactiveTiles.Add(tm);
+        }
+
+        Rect trayScreenRect = GetTrayScreenRect(tray);
+        int slotCount = Mathf.Max(1, activeTiles.Count);
+        var cam = Camera.main;
+
+        for (int i = 0; i < activeTiles.Count; i++)
+        {
+            var tm = activeTiles[i];
+            if (tm == null || tm.gameObject == null) continue;
+
+            tm.enabled = false;
+
+            var go = tm.gameObject;
+            var tr = go.transform;
+            tr.DOKill();
+
+            var sr = go.GetComponent<SpriteRenderer>();
+            Color srColor = sr != null ? sr.color : default;
+            Vector3 originalScale = tr.localScale;
+
+            float t = (i + 0.5f) / slotCount;
+            float screenX = Mathf.Lerp(trayScreenRect.xMin + 40f, trayScreenRect.xMax - 40f, t);
+            float screenY = Mathf.Lerp(trayScreenRect.yMin, trayScreenRect.yMax, 0.5f);
+            float zDist = cam != null ? Mathf.Abs(tr.position.z - cam.transform.position.z) : 10f;
+            Vector3 targetWorld = cam != null
+                ? cam.ScreenToWorldPoint(new Vector3(screenX, screenY, zDist))
+                : tr.position;
+            targetWorld.z = tr.position.z;
+
+            float duration = Mathf.Max(0.05f, recallToTrayDuration);
+            float scaleTo = Mathf.Max(0.01f, recallToTrayScale);
+
+            var seq = DOTween.Sequence();
+            seq.Join(tr.DOMove(targetWorld, duration).SetEase(recallToTrayEase));
+            seq.Join(tr.DOScale(originalScale * scaleTo, duration).SetEase(recallToTrayEase));
+            if (sr != null)
+            {
+                Color target = new Color(srColor.r, srColor.g, srColor.b, 0f);
+                seq.Join(DOTween.To(() => sr.color, c => sr.color = c, target, duration));
+            }
+            bool done = false;
+            seq.OnComplete(() =>
+            {
+                if (sr != null) sr.color = srColor;
+                tr.localScale = originalScale;
+                tm.enabled = true;
+                go.SetActive(false);
+                tray.AddPiece(go);
+                done = true;
+            });
+
+            float wait = Mathf.Max(0f, recallToTrayStagger);
+            float elapsed = 0f;
+            while (!done && elapsed < duration + 0.5f)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            if (wait > 0f) yield return new WaitForSecondsRealtime(wait);
+        }
+
+        for (int i = 0; i < inactiveTiles.Count; i++)
+        {
+            var tm = inactiveTiles[i];
+            if (tm == null || tm.gameObject == null) continue;
+            tm.enabled = true;
+            tray.AddPiece(tm.gameObject);
+        }
+    }
+
+    private Rect GetTrayScreenRect(PuzzleScrollTray tray)
+    {
+        if (tray != null && tray.scrollRect != null)
+        {
+            RectTransform rt = tray.scrollRect.viewport != null ? tray.scrollRect.viewport : tray.scrollRect.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                var corners = new Vector3[4];
+                rt.GetWorldCorners(corners);
+                var cam = Camera.main;
+                float minX = float.PositiveInfinity;
+                float minY = float.PositiveInfinity;
+                float maxX = float.NegativeInfinity;
+                float maxY = float.NegativeInfinity;
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 s = RectTransformUtility.WorldToScreenPoint(null, corners[i]);
+                    if (s.x < minX) minX = s.x;
+                    if (s.y < minY) minY = s.y;
+                    if (s.x > maxX) maxX = s.x;
+                    if (s.y > maxY) maxY = s.y;
+                }
+                if (float.IsFinite(minX) && float.IsFinite(minY) && float.IsFinite(maxX) && float.IsFinite(maxY))
+                {
+                    return Rect.MinMaxRect(minX, minY, maxX, maxY);
+                }
+            }
+        }
+        float fallbackH = Screen.height * 0.15f;
+        return new Rect(0f, 0f, Screen.width, fallbackH);
+    }
+
     void OnFinishedShuffling()
     {
         activeCoroutines.Clear();
@@ -975,7 +1223,7 @@ ComputeCamera:
                     tm.onTileInPlace += OnTileInPlace;
                 }
                 SpriteRenderer spriteRenderer = tm.gameObject.GetComponent<SpriteRenderer>();
-                Tile.tilesSorting.BringToTop(spriteRenderer);
+                PieceSorting.SetIdle(spriteRenderer);
             }
         }
 
@@ -1024,6 +1272,7 @@ ComputeCamera:
                 // 从排序中移除，避免重复调整层级
                 var sr = tm.gameObject.GetComponent<SpriteRenderer>();
                 Tile.tilesSorting.Remove(sr);
+                PieceSorting.SetPlaced(sr);
                 restoredPlaced++;
             }
             else
@@ -1239,6 +1488,7 @@ ComputeCamera:
 
         SpriteRenderer spriteRenderer = tm.gameObject.GetComponent<SpriteRenderer>();
         Tile.tilesSorting.Remove(spriteRenderer);
+        PieceSorting.SetPlaced(spriteRenderer);
 
         if (GameManager.Instance.TotalTilesInCorrectPosition == mTileGameObjects.Length)
         {

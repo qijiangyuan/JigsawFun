@@ -19,6 +19,7 @@ public class GameplayPage : BasePage
     //public Button timerToggleButton;        // 计时器开关按钮
     public Button backButton;               // 返回按钮
     public Button startButton;              // 开始按钮
+    public Button clearToTrayButton;
 
     [Header("UI显示")]
     public TextMeshProUGUI timerText;                  // 计时器文本
@@ -49,6 +50,11 @@ public class GameplayPage : BasePage
     private bool isGameActive = false;
     private int completedPieces = 0;
     private int totalPieces = 0;
+
+    private const int MaxHintsPerGame = 5;
+    private int hintRemaining = MaxHintsPerGame;
+
+    private bool timerStarted;
 
     //免费提示次数 
     private int freeHintCount = 3; // 初始免费提示次数
@@ -109,11 +115,25 @@ public class GameplayPage : BasePage
     private void OnPuzzleGenerationDone()
     {
         startButton?.gameObject.SetActive(true);
+        SetTopControlsVisible(true);
+        UpdateUI();
+        UpdateHintUI();
+    }
+
+    private void SetTopControlsVisible(bool visible)
+    {
+        if (pauseButton != null) pauseButton.gameObject.SetActive(visible);
+        if (hintButton != null) hintButton.gameObject.SetActive(visible);
+        if (backButton != null) backButton.gameObject.SetActive(visible);
+        if (clearToTrayButton != null) clearToTrayButton.gameObject.SetActive(visible);
+        if (timerText != null) timerText.gameObject.SetActive(visible);
+        if (difficultyText != null) difficultyText.gameObject.SetActive(visible);
+        if (progressText != null) progressText.gameObject.SetActive(visible);
+        if (hintRemainText != null) hintRemainText.gameObject.SetActive(visible);
     }
 
     private void OnSelectPiece(PuzzlePiece puzzlePiece)
     {
-        hintButton.gameObject.SetActive(true);
         currentPiece = puzzlePiece;
     }
 
@@ -122,7 +142,6 @@ public class GameplayPage : BasePage
         if (currentPiece != null && currentPiece == puzzlePiece)
         {
             currentPiece = null;
-            hintButton.gameObject.SetActive(false);
         }
     }
 
@@ -139,7 +158,7 @@ public class GameplayPage : BasePage
         if (hintButton != null)
         {
             hintButton.onClick.AddListener(OnHintButtonClicked);
-            hintButton.gameObject.SetActive(false); // 初始隐藏提示按钮
+            hintButton.gameObject.SetActive(true);
         }
 
         if (watchAdButton != null)
@@ -153,6 +172,10 @@ public class GameplayPage : BasePage
             startButton.gameObject.SetActive(false); // 初始隐藏提示按钮
         }
 
+        if (clearToTrayButton != null)
+        {
+            clearToTrayButton.onClick.AddListener(OnClearToTrayClicked);
+        }
 
 
         //if (timerToggleButton != null)
@@ -212,7 +235,18 @@ public class GameplayPage : BasePage
             boardGen.ShuffleTiles();
         }
 
+        isTimerEnabled = true;
+        timerStarted = true;
         startButton?.gameObject.SetActive(false);
+    }
+
+    private void OnClearToTrayClicked()
+    {
+        BoardGen boardGen = FindObjectOfType<BoardGen>();
+        if (boardGen != null)
+        {
+            boardGen.MoveUnplacedTilesToTray();
+        }
     }
 
     /// <summary>
@@ -223,6 +257,9 @@ public class GameplayPage : BasePage
     {
         currentGameData = gameData;
 
+        SetTopControlsVisible(false);
+        startButton?.gameObject.SetActive(false);
+
         // 设置背景
         SetupBackground();
         FitPuzzleFrameMargin();
@@ -232,13 +269,23 @@ public class GameplayPage : BasePage
 
         // 初始化游戏状态
         gameStartTime = Time.time;
-        currentGameTime = 0f;
+        float saved = 0f;
+        if (GameManager.Instance != null && GameManager.Instance.currentGameData != null && GameManager.Instance.currentGameData.selectedImage != null)
+        {
+            var state = PlayPrefsManager.Instance.LoadPuzzleStateForImage(GameManager.Instance.currentGameData.selectedImage.name);
+            if (state != null) saved = Mathf.Max(0f, state.elapsedSeconds);
+        }
+        currentGameTime = saved;
         isGameActive = true;
+        isTimerEnabled = true;
         completedPieces = 0;
         totalPieces = gameData.difficulty * gameData.difficulty;
+        hintRemaining = MaxHintsPerGame;
+        timerStarted = false;
 
         // 更新UI
         UpdateUI();
+        UpdateTimerText();
 
         // 初始化提示UI
         UpdateHintUI();
@@ -266,7 +313,12 @@ public class GameplayPage : BasePage
         isGameActive = true;
         isTimerEnabled = true;
         completedPieces = 0;
+        hintRemaining = MaxHintsPerGame;
         //totalPieces = currentGameData.difficulty * currentGameData.difficulty;
+        timerStarted = false;
+        UpdateTimerText();
+        SetTopControlsVisible(false);
+        startButton?.gameObject.SetActive(false);
     }
 
     /// <summary>
@@ -350,10 +402,20 @@ public class GameplayPage : BasePage
 
         //停止计时器
         isTimerEnabled = false;
+        timerStarted = false;
 
         // 使用GameManager处理游戏完成
         if (GameManager.Instance != null)
         {
+            string imageId = GameManager.Instance.currentGameData != null && GameManager.Instance.currentGameData.selectedImage != null
+                ? GameManager.Instance.currentGameData.selectedImage.name
+                : GameManager.Instance.currentGameData != null ? GameManager.Instance.currentGameData.imageName : null;
+            if (!string.IsNullOrEmpty(imageId))
+            {
+                PlayPrefsManager.Instance.AddCompletedPuzzle(imageId, GameManager.Instance.currentGameData.difficulty, completionTime);
+                PlayPrefsManager.Instance.ClearPuzzleStateForImage(imageId);
+                PlayPrefsManager.Instance.SaveCompletedPreview(imageId, SpriteToPreviewTexture(GameManager.Instance.currentGameData.selectedImage));
+            }
             GameManager.Instance.CompleteGame(completionTime);
         }
         else
@@ -372,6 +434,32 @@ public class GameplayPage : BasePage
         }
     }
 
+    private Texture2D SpriteToPreviewTexture(Sprite sprite)
+    {
+        if (sprite == null) return null;
+        var srcTex = sprite.texture;
+        if (srcTex == null) return null;
+
+        Rect tr = sprite.textureRect;
+        int w = Mathf.Max(1, Mathf.RoundToInt(tr.width));
+        int h = Mathf.Max(1, Mathf.RoundToInt(tr.height));
+        RenderTexture rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
+        var prev = RenderTexture.active;
+        RenderTexture.active = rt;
+        GL.Clear(true, true, Color.clear);
+        Rect uv = new Rect(tr.x / srcTex.width, tr.y / srcTex.height, tr.width / srcTex.width, tr.height / srcTex.height);
+        Graphics.DrawTexture(new Rect(0, 0, w, h), srcTex, uv, 0, 0, 0, 0);
+        RenderTexture.active = rt;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+        tex.Apply();
+        RenderTexture.active = prev;
+        RenderTexture.ReleaseTemporary(rt);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        return tex;
+    }
+
     /// <summary>
     /// 重置按钮点击事件
     /// </summary>
@@ -385,7 +473,8 @@ public class GameplayPage : BasePage
             {
                 PlayPrefsManager.Instance.SaveCurrentSceneState(
                     GameManager.Instance.currentGameData.selectedImage.name,
-                    GameManager.Instance.currentGameData.difficulty
+                    GameManager.Instance.currentGameData.difficulty,
+                    currentGameTime
                 );
             }
             GameManager.Instance.ReturnToGallery();
@@ -407,7 +496,8 @@ public class GameplayPage : BasePage
             {
                 PlayPrefsManager.Instance.SaveCurrentSceneState(
                     GameManager.Instance.currentGameData.selectedImage.name,
-                    GameManager.Instance.currentGameData.difficulty
+                    GameManager.Instance.currentGameData.difficulty,
+                    currentGameTime
                 );
             }
             GameManager.Instance.ReturnToGallery();
@@ -423,8 +513,10 @@ public class GameplayPage : BasePage
         gameStartTime = Time.time;
         currentGameTime = 0f;
         completedPieces = 0;
+        timerStarted = false;
 
         UpdateUI();
+        UpdateTimerText();
     }
 
     /// <summary>
@@ -432,18 +524,16 @@ public class GameplayPage : BasePage
     /// </summary>
     private void OnHintButtonClicked()
     {
-        //if (hintManager != null && hintManager.CanUseHint())
-        //{
-        //    currentPiece?.SnapToCorrectPosition();
-        //    hintManager.UseHint();
-        //    UpdateHintUI();
-        //}
-        //else
-        {
-            // 如果没有免费提示次数，显示观看广告按钮
-            Debug.Log("没有免费提示次数了，观看广告获得更多提示！");
-            ShowWatchAdOption();
-        }
+        if (hintRemaining <= 0) return;
+        var tm = PickHintTargetTileMovement();
+        if (tm == null) return;
+
+        hintRemaining = Mathf.Max(0, hintRemaining - 1);
+        UpdateHintUI();
+
+        tm.enabled = true;
+        tm.gameObject.SetActive(true);
+        tm.SnapToCorretPosition();
     }
 
     /// <summary>
@@ -492,7 +582,7 @@ public class GameplayPage : BasePage
         if (AdManager.Instance != null)
         {
             // 显示Banner广告
-            AdManager.Instance.BannerHandler.ShowBanner();
+            //AdManager.Instance.BannerHandler.ShowBanner();
 
             // 订阅提示奖励事件
             if (hintManager != null)
@@ -522,20 +612,60 @@ public class GameplayPage : BasePage
     /// </summary>
     private void UpdateHintUI()
     {
-        if (hintRemainText != null && hintManager != null)
+        if (hintRemainText != null)
         {
-            //hintRemainText.text = $"x{hintManager.CurrentHintCount}";
+            hintRemainText.text = $"x{hintRemaining}";
+            hintRemainText.gameObject.SetActive(true);
+        }
+        if (hintButton != null)
+        {
+            hintButton.interactable = hintRemaining > 0 && HasAnyUnplacedTiles();
+        }
+    }
+
+    private bool HasAnyUnplacedTiles()
+    {
+        var tray = FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray != null && tray.contentContainer != null && tray.contentContainer.childCount > 0) return true;
+        var tiles = FindObjectsOfType<TileMovement>(true);
+        return tiles != null && tiles.Length > 0;
+    }
+
+    private TileMovement PickHintTargetTileMovement()
+    {
+        var tray = FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray != null && tray.contentContainer != null)
+        {
+            for (int i = 0; i < tray.contentContainer.childCount; i++)
+            {
+                var child = tray.contentContainer.GetChild(i);
+                if (child == null) continue;
+                var item = child.GetComponent<PuzzleTrayItem>();
+                if (item == null || item.worldPiece == null) continue;
+                var tm = item.worldPiece.GetComponent<TileMovement>();
+                if (tm == null) continue;
+                Destroy(child.gameObject);
+                return tm;
+            }
         }
 
-        // 根据提示次数显示/隐藏观看广告按钮
-        if (hintManager != null && !hintManager.UseHint())
+        var tiles = FindObjectsOfType<TileMovement>(true);
+        if (tiles == null || tiles.Length == 0) return null;
+        TileMovement best = null;
+        float bestDist = float.PositiveInfinity;
+        for (int i = 0; i < tiles.Length; i++)
         {
-            ShowWatchAdOption();
+            var tm = tiles[i];
+            if (tm == null || tm.tile == null) continue;
+            Vector3 correct = new Vector3(tm.tile.xIndex * Tile.tileSize, tm.tile.yIndex * Tile.tileSize, 0f);
+            float d = (tm.transform.position - correct).sqrMagnitude;
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = tm;
+            }
         }
-        else
-        {
-            HideWatchAdOption();
-        }
+        return best;
     }
 
 
@@ -636,12 +766,16 @@ public class GameplayPage : BasePage
 
     private void Update()
     {
-        // 更新游戏时间
-        if (isGameActive && isTimerEnabled)
+        if (isGameActive && isTimerEnabled && timerStarted && (GameManager.Instance == null || GameManager.Instance.CurrentState == GameState.Playing))
         {
-            currentGameTime = Time.time - gameStartTime;
+            currentGameTime += Time.unscaledDeltaTime;
             UpdateTimerText();
         }
+    }
+
+    public bool IsTimerStarted()
+    {
+        return timerStarted;
     }
 
     protected override void OnPageShow()
@@ -653,7 +787,7 @@ public class GameplayPage : BasePage
         // 显示Banner广告
         if (AdManager.Instance != null)
         {
-            AdManager.Instance.BannerHandler.ShowBanner();
+            //AdManager.Instance.BannerHandler.ShowBanner();
         }
     }
 

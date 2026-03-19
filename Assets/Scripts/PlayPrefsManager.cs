@@ -1,4 +1,6 @@
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 using System.IO;
 
 public class PlayPrefsManager : MonoBehaviour
@@ -86,8 +88,23 @@ public class PlayPrefsManager : MonoBehaviour
     public class PuzzleStateData
     {
         public int gridSize;
+        public float elapsedSeconds;
         public PuzzlePieceData[] pieces;
     }
+
+    [System.Serializable]
+    public class CompletedPuzzleData
+    {
+        public string imageId;
+        public int difficulty;
+        public float completionTimeSeconds;
+        public long completedAtTicksUtc;
+    }
+
+    [System.Serializable]
+    private class CompletedListWrapper { public CompletedPuzzleData[] items; }
+
+    private const string COMPLETED_INDEX_KEY = "CompletedIndex";
 
     private string GetStateKey(string imageId)
     {
@@ -214,6 +231,11 @@ public class PlayPrefsManager : MonoBehaviour
 
     public void SaveCurrentSceneState(string imageId, int gridSize)
     {
+        SaveCurrentSceneState(imageId, gridSize, -1f);
+    }
+
+    public void SaveCurrentSceneState(string imageId, int gridSize, float elapsedSeconds)
+    {
         if (string.IsNullOrEmpty(imageId)) return;
         // 既要保存未放置的块（有 TileMovement），也要保存已放置的块（TileMovement 已被销毁）
         // 以 Tile GameObject 的命名规则 "TileGameObe_x_y" 为准收集全部块
@@ -244,6 +266,7 @@ public class PlayPrefsManager : MonoBehaviour
         PuzzleStateData stateData = new PuzzleStateData
         {
             gridSize = gridSize,
+            elapsedSeconds = elapsedSeconds >= 0f ? elapsedSeconds : 0f,
             pieces = new PuzzlePieceData[Mathf.Max(expected, pieces.Count)]
         };
         // 初始化为默认（避免缺块导致数组有 null）
@@ -364,6 +387,133 @@ public class PlayPrefsManager : MonoBehaviour
             Debug.Log($"[PlayPrefs] Deleted save file: {path}");
         }
         RemoveFromSaveIndex(imageId);
+    }
+
+    #endregion
+
+    #region Completed Puzzle Management
+
+    public void AddCompletedPuzzle(string imageId, int difficulty, float completionTimeSeconds)
+    {
+        if (string.IsNullOrEmpty(imageId)) return;
+        var list = LoadCompletedList();
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            if (list[i] != null && list[i].imageId == imageId) list.RemoveAt(i);
+        }
+        list.Insert(0, new CompletedPuzzleData
+        {
+            imageId = imageId,
+            difficulty = difficulty,
+            completionTimeSeconds = Mathf.Max(0f, completionTimeSeconds),
+            completedAtTicksUtc = DateTime.UtcNow.Ticks
+        });
+        SaveCompletedList(list);
+    }
+
+    public List<CompletedPuzzleData> GetCompletedPuzzles()
+    {
+        return LoadCompletedList();
+    }
+
+    public void RemoveCompletedPuzzle(string imageId)
+    {
+        if (string.IsNullOrEmpty(imageId)) return;
+        var list = LoadCompletedList();
+        bool changed = false;
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            if (list[i] != null && list[i].imageId == imageId)
+            {
+                list.RemoveAt(i);
+                changed = true;
+            }
+        }
+        if (changed) SaveCompletedList(list);
+
+        try
+        {
+            string file = Path.Combine(Application.persistentDataPath, "CompletedPreviews", SanitizeFileName(imageId) + ".png");
+            if (File.Exists(file)) File.Delete(file);
+        }
+        catch
+        {
+        }
+    }
+
+    public void SaveCompletedPreview(string imageId, Texture2D previewTex)
+    {
+        if (string.IsNullOrEmpty(imageId) || previewTex == null) return;
+        string folder = Path.Combine(Application.persistentDataPath, "CompletedPreviews");
+        EnsureDirectory(folder);
+        string file = Path.Combine(folder, SanitizeFileName(imageId) + ".png");
+        try
+        {
+            byte[] png = previewTex.EncodeToPNG();
+            File.WriteAllBytes(file, png);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[PlayPrefs] SaveCompletedPreview failed: {e.Message}");
+        }
+    }
+
+    public Sprite LoadCompletedPreviewSprite(string imageId)
+    {
+        if (string.IsNullOrEmpty(imageId)) return null;
+        string file = Path.Combine(Application.persistentDataPath, "CompletedPreviews", SanitizeFileName(imageId) + ".png");
+        if (!File.Exists(file)) return null;
+        try
+        {
+            byte[] bytes = File.ReadAllBytes(file);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (!tex.LoadImage(bytes)) return null;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            tex.name = imageId + "_Preview";
+            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[PlayPrefs] LoadCompletedPreviewSprite failed: {e.Message}");
+            return null;
+        }
+    }
+
+    private List<CompletedPuzzleData> LoadCompletedList()
+    {
+        string raw = PlayerPrefs.GetString(COMPLETED_INDEX_KEY, "");
+        var list = new List<CompletedPuzzleData>();
+        if (string.IsNullOrEmpty(raw)) return list;
+        try
+        {
+            var wrapper = JsonUtility.FromJson<CompletedListWrapper>(raw);
+            if (wrapper != null && wrapper.items != null) list.AddRange(wrapper.items);
+        }
+        catch
+        {
+        }
+        list.RemoveAll(x => x == null || string.IsNullOrEmpty(x.imageId));
+        list.Sort((a, b) => b.completedAtTicksUtc.CompareTo(a.completedAtTicksUtc));
+        return list;
+    }
+
+    private void SaveCompletedList(List<CompletedPuzzleData> list)
+    {
+        var wrapper = new CompletedListWrapper { items = list != null ? list.ToArray() : Array.Empty<CompletedPuzzleData>() };
+        string json = JsonUtility.ToJson(wrapper);
+        PlayerPrefs.SetString(COMPLETED_INDEX_KEY, json);
+        PlayerPrefs.Save();
+    }
+
+    private static string SanitizeFileName(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return "unknown";
+        foreach (char c in Path.GetInvalidFileNameChars())
+        {
+            s = s.Replace(c, '_');
+        }
+        return s;
     }
 
     #endregion

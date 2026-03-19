@@ -11,7 +11,7 @@ using UnityEngine.EventSystems;
 public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [Header("拖放设置")]
-    public float snapDistance = 1.0f; // 吸附距离
+    public float snapDistance = 10.0f; // 吸附距离
     public LayerMask puzzlePieceLayer = -1; // 拼图块图层
 
     [Header("视觉反馈")]
@@ -37,6 +37,7 @@ public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     public int gridSize; // 拼图网格大小，用于构建normal map路径
 
     public AudioClip snapSound; // 吸附音效
+    public AudioClip dragSound;
 
     // Normal map相关
     private Texture2D normalMapTexture;
@@ -71,6 +72,7 @@ public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (isPlaced) return; // 已正确放置的拼图块不能再拖动
 
         isDragging = true;
+        TryPlayDragSound();
 
     
 
@@ -267,15 +269,38 @@ public class PuzzlePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         spriteRenderer.color = normalColor;
 
         // 播放吸附音效（如果有的话）
-        if (JigsawFun.Audio.AudioManager.Instance != null && snapSound != null)
+        if (JigsawFun.Audio.AudioManager.Instance != null)
         {
-            JigsawFun.Audio.AudioManager.Instance.PlaySound(snapSound);
+            if (JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Snap"))
+            {
+                JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Snap");
+            }
+            else if (snapSound != null)
+            {
+                JigsawFun.Audio.AudioManager.Instance.PlaySound(snapSound);
+            }
         }
 
         EventDispatcher.Dispatch(EventNames.DESELECT_PIECE, this);
 
         // 检查是否完成拼图
         CheckPuzzleCompletion();
+    }
+
+    private void TryPlayDragSound()
+    {
+        if (JigsawFun.Audio.AudioManager.Instance != null)
+        {
+            if (JigsawFun.Audio.AudioManager.Instance.HasSoundGroup("Drag"))
+            {
+                JigsawFun.Audio.AudioManager.Instance.PlayRandomSound("Drag");
+                return;
+            }
+            if (dragSound != null)
+            {
+                JigsawFun.Audio.AudioManager.Instance.PlaySound(dragSound);
+            }
+        }
     }
 
     /// <summary>

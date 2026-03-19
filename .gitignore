@@ -61,3 +61,9 @@ Assets/AddressableAssetsData/*/*.bin*
 Assets/Plugins/Android/.aar
 Assets/StreamingAssets/aa.meta
 Assets/StreamingAssets/aa/*
+
+# Unity user-specific settings
+UserSettings/
+
+# Local save/debug data (keep out of repo)
+Assets/Saves/

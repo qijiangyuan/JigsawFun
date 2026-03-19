@@ -178,7 +178,7 @@ public class VictoryPage : BasePage
         if (_selfCanvas == null) _selfCanvas = GetComponent<Canvas>();
         if (_selfCanvas == null) _selfCanvas = gameObject.AddComponent<Canvas>();
         _selfCanvas.overrideSorting = true;
-        _selfCanvas.sortingOrder = 1000;
+        _selfCanvas.sortingOrder = 10000;
 
         if (_graphicRaycaster == null) _graphicRaycaster = GetComponent<GraphicRaycaster>();
         if (_graphicRaycaster == null) _graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
