@@ -414,7 +414,9 @@ public class GameplayPage : BasePage
             {
                 PlayPrefsManager.Instance.AddCompletedPuzzle(imageId, GameManager.Instance.currentGameData.difficulty, completionTime);
                 PlayPrefsManager.Instance.ClearPuzzleStateForImage(imageId);
-                PlayPrefsManager.Instance.SaveCompletedPreview(imageId, SpriteToPreviewTexture(GameManager.Instance.currentGameData.selectedImage));
+                var preview = SpriteToPreviewTexture(GameManager.Instance.currentGameData.selectedImage);
+                PlayPrefsManager.Instance.SaveCompletedPreview(imageId, preview);
+                if (preview != null) Destroy(preview);
             }
             GameManager.Instance.CompleteGame(completionTime);
         }
@@ -443,15 +445,21 @@ public class GameplayPage : BasePage
         Rect tr = sprite.textureRect;
         int w = Mathf.Max(1, Mathf.RoundToInt(tr.width));
         int h = Mathf.Max(1, Mathf.RoundToInt(tr.height));
-        RenderTexture rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
+        int maxSize = 512;
+        int maxDim = Mathf.Max(w, h);
+        float scale = maxDim > maxSize ? (float)maxSize / maxDim : 1f;
+        int tw = Mathf.Max(1, Mathf.RoundToInt(w * scale));
+        int th = Mathf.Max(1, Mathf.RoundToInt(h * scale));
+
+        RenderTexture rt = RenderTexture.GetTemporary(tw, th, 0, RenderTextureFormat.ARGB32);
         var prev = RenderTexture.active;
         RenderTexture.active = rt;
         GL.Clear(true, true, Color.clear);
         Rect uv = new Rect(tr.x / srcTex.width, tr.y / srcTex.height, tr.width / srcTex.width, tr.height / srcTex.height);
-        Graphics.DrawTexture(new Rect(0, 0, w, h), srcTex, uv, 0, 0, 0, 0);
+        Graphics.DrawTexture(new Rect(0, 0, tw, th), srcTex, uv, 0, 0, 0, 0);
         RenderTexture.active = rt;
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+        Texture2D tex = new Texture2D(tw, th, TextureFormat.RGBA32, false);
+        tex.ReadPixels(new Rect(0, 0, tw, th), 0, 0);
         tex.Apply();
         RenderTexture.active = prev;
         RenderTexture.ReleaseTemporary(rt);

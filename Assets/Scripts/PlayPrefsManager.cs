@@ -433,8 +433,12 @@ public class PlayPrefsManager : MonoBehaviour
 
         try
         {
-            string file = Path.Combine(Application.persistentDataPath, "CompletedPreviews", SanitizeFileName(imageId) + ".png");
-            if (File.Exists(file)) File.Delete(file);
+            string baseName = SanitizeFileName(imageId);
+            string folder = Path.Combine(Application.persistentDataPath, "CompletedPreviews");
+            string jpg = Path.Combine(folder, baseName + ".jpg");
+            string png = Path.Combine(folder, baseName + ".png");
+            if (File.Exists(jpg)) File.Delete(jpg);
+            if (File.Exists(png)) File.Delete(png);
         }
         catch
         {
@@ -446,11 +450,11 @@ public class PlayPrefsManager : MonoBehaviour
         if (string.IsNullOrEmpty(imageId) || previewTex == null) return;
         string folder = Path.Combine(Application.persistentDataPath, "CompletedPreviews");
         EnsureDirectory(folder);
-        string file = Path.Combine(folder, SanitizeFileName(imageId) + ".png");
+        string file = Path.Combine(folder, SanitizeFileName(imageId) + ".jpg");
         try
         {
-            byte[] png = previewTex.EncodeToPNG();
-            File.WriteAllBytes(file, png);
+            byte[] jpg = previewTex.EncodeToJPG(80);
+            File.WriteAllBytes(file, jpg);
         }
         catch (Exception e)
         {
@@ -461,7 +465,11 @@ public class PlayPrefsManager : MonoBehaviour
     public Sprite LoadCompletedPreviewSprite(string imageId)
     {
         if (string.IsNullOrEmpty(imageId)) return null;
-        string file = Path.Combine(Application.persistentDataPath, "CompletedPreviews", SanitizeFileName(imageId) + ".png");
+        string baseName = SanitizeFileName(imageId);
+        string folder = Path.Combine(Application.persistentDataPath, "CompletedPreviews");
+        string jpg = Path.Combine(folder, baseName + ".jpg");
+        string png = Path.Combine(folder, baseName + ".png");
+        string file = File.Exists(jpg) ? jpg : png;
         if (!File.Exists(file)) return null;
         try
         {

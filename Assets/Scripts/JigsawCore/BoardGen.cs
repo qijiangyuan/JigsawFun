@@ -569,6 +569,23 @@ ComputeCamera:
         return Rect.MinMaxRect(minX, minY, maxX, maxY);
     }
 
+    public void SetPuzzleVisible(bool visible)
+    {
+        if (mGameObjectOpaque != null) mGameObjectOpaque.SetActive(visible);
+        if (mGameObjectTransparent != null) mGameObjectTransparent.SetActive(visible);
+        if (mTileGameObjects != null)
+        {
+            for (int i = 0; i < mTileGameObjects.GetLength(0); i++)
+            {
+                for (int j = 0; j < mTileGameObjects.GetLength(1); j++)
+                {
+                    var go = mTileGameObjects[i, j];
+                    if (go != null) go.SetActive(visible);
+                }
+            }
+        }
+    }
+
     public static GameObject CreateGameObjectFromTile(Tile tile)
     {
         GameObject obj = new GameObject();

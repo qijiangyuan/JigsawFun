@@ -255,19 +255,24 @@ public class GameManager : MonoBehaviour
 
     private void HidePuzzleWorldForVictory()
     {
-        var renderers = GameObject.FindObjectsOfType<SpriteRenderer>(true);
-        if (renderers != null)
+        var board = FindObjectOfType<BoardGen>(true);
+        if (board != null)
         {
-            for (int i = 0; i < renderers.Length; i++)
+            board.SetPuzzleVisible(false);
+            return;
+        }
+
+        var renderers = GameObject.FindObjectsOfType<SpriteRenderer>(true);
+        if (renderers == null) return;
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            var sr = renderers[i];
+            if (sr == null) continue;
+            var go = sr.gameObject;
+            if (go == null) continue;
+            if (go.name.StartsWith("TileGameObe_") || go.name.StartsWith("Piece_"))
             {
-                var sr = renderers[i];
-                if (sr == null) continue;
-                var go = sr.gameObject;
-                if (go == null) continue;
-                if (go.name.StartsWith("TileGameObe_") || go.name.StartsWith("Piece_"))
-                {
-                    go.SetActive(false);
-                }
+                go.SetActive(false);
             }
         }
     }
