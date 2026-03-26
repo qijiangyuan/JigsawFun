@@ -1093,20 +1093,6 @@ ComputeCamera:
         var tiles = FindObjectsOfType<TileMovement>(true);
         if (tiles == null || tiles.Length == 0) yield break;
 
-        Array.Sort(tiles, (a, b) =>
-        {
-            if (a == null && b == null) return 0;
-            if (a == null) return 1;
-            if (b == null) return -1;
-            int ay = a.tile != null ? a.tile.yIndex : 0;
-            int ax = a.tile != null ? a.tile.xIndex : 0;
-            int by = b.tile != null ? b.tile.yIndex : 0;
-            int bx = b.tile != null ? b.tile.xIndex : 0;
-            int cy = ay.CompareTo(by);
-            if (cy != 0) return cy;
-            return ax.CompareTo(bx);
-        });
-
         var activeTiles = new List<TileMovement>();
         var inactiveTiles = new List<TileMovement>();
         for (int i = 0; i < tiles.Length; i++)
@@ -1115,6 +1101,17 @@ ComputeCamera:
             if (tm == null || tm.gameObject == null) continue;
             if (tm.gameObject.activeSelf) activeTiles.Add(tm);
             else inactiveTiles.Add(tm);
+        }
+
+        for (int i = 0; i < activeTiles.Count; i++)
+        {
+            int r = UnityEngine.Random.Range(i, activeTiles.Count);
+            (activeTiles[i], activeTiles[r]) = (activeTiles[r], activeTiles[i]);
+        }
+        for (int i = 0; i < inactiveTiles.Count; i++)
+        {
+            int r = UnityEngine.Random.Range(i, inactiveTiles.Count);
+            (inactiveTiles[i], inactiveTiles[r]) = (inactiveTiles[r], inactiveTiles[i]);
         }
 
         Rect trayScreenRect = GetTrayScreenRect(tray);
@@ -1304,16 +1301,24 @@ ComputeCamera:
         if (tray != null)
         {
             tray.Clear();
+            var unplaced = new List<GameObject>();
             for (int k = 0; k < state.pieces.Length; k++)
             {
                 var pd = state.pieces[k];
+                if (pd.isPlaced) continue;
                 int i = Mathf.Clamp(pd.col, 0, numTileX - 1);
                 int j = Mathf.Clamp(pd.row, 0, numTileY - 1);
-                if (!pd.isPlaced)
-                {
-                    var piece = mTileGameObjects[i, j];
-                    if (piece != null) tray.AddPiece(piece);
-                }
+                var piece = mTileGameObjects[i, j];
+                if (piece != null) unplaced.Add(piece);
+            }
+            for (int i = 0; i < unplaced.Count; i++)
+            {
+                int r = UnityEngine.Random.Range(i, unplaced.Count);
+                (unplaced[i], unplaced[r]) = (unplaced[r], unplaced[i]);
+            }
+            for (int i = 0; i < unplaced.Count; i++)
+            {
+                tray.AddPiece(unplaced[i]);
             }
         }
 

@@ -16,7 +16,7 @@ MonoBehaviour:
   iosAppKey: YOUR_IOS_APP_KEY
   interstitialAdUnitId: 4n6dvwk98qnuygum
   levelsBetweenInterstitials: 1
-  interstitialCooldownTime: 30
+  interstitialCooldownTime: 300
   rewardedAdUnitId: 6ex5h29wsigzv1tl
   rewardHintCount: 3
   bannerAdUnitId: h37ckomyc17qrun5

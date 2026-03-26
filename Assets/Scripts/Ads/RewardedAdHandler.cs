@@ -12,10 +12,19 @@ namespace JigsawFun.Ads
     {
         private AdConfig adConfig;
         private string adUnitId;
+        private bool isInitialized;
+        private float nextAllowedLoadTime;
+        private Coroutine retryCoroutine;
+        private int consecutiveNoFillCount;
+        private int consecutiveErrorCount;
+        private bool isLoading;
 
         // 广告状态
         private bool isAdLoaded = false;
         private bool isAdShowing = false;
+        private bool pendingShow;
+        private string pendingPlacement;
+        private Action pendingRewardCallback;
 
         // 奖励回调
         private Action currentRewardCallback;
@@ -36,14 +45,8 @@ namespace JigsawFun.Ads
         {
             adConfig = config;
             adUnitId = config.RewardedAdUnitId;
-
-            rewardedVideoAd = new LevelPlayRewardedAd(config.RewardedAdUnitId);
-
-            // 注册LevelPlay事件
-            RegisterLevelPlayEvents();
-
-            // 预加载广告
-            LoadAd();
+            isInitialized = true;
+            EnsureAdObject();
 
             Log("激励视频广告处理器初始化完成");
         }
@@ -81,6 +84,10 @@ namespace JigsawFun.Ads
         /// </summary>
         public void LoadAd()
         {
+            if (!CanLoadNow()) return;
+            if (Time.unscaledTime < nextAllowedLoadTime) return;
+            if (isLoading) return;
+
             if (isAdLoaded)
             {
                 Log("激励视频广告已加载，无需重复加载");
@@ -90,10 +97,12 @@ namespace JigsawFun.Ads
             try
             {
                 Log("开始加载激励视频广告...");
+                isLoading = true;
                 rewardedVideoAd.LoadAd();
             }
             catch (Exception e)
             {
+                isLoading = false;
                 LogError($"加载激励视频广告失败: {e.Message}");
             }
         }
@@ -105,10 +114,19 @@ namespace JigsawFun.Ads
         /// <param name="onRewarded">奖励回调</param>
         public void ShowAd(string placement = "hint_reward", Action onRewarded = null)
         {
-            if (!CanShowAd())
+            if (isAdShowing)
             {
                 Log("当前无法显示激励视频广告");
-                OnRewardedAdFailed?.Invoke("广告未准备好");
+                OnRewardedAdFailed?.Invoke("广告正在显示中");
+                return;
+            }
+
+            if (!isAdLoaded)
+            {
+                pendingShow = true;
+                pendingPlacement = placement;
+                pendingRewardCallback = onRewarded;
+                LoadAd();
                 return;
             }
 
@@ -158,6 +176,7 @@ namespace JigsawFun.Ads
         {
             try
             {
+                if (!CanLoadNow()) return false;
                 return rewardedVideoAd.IsAdReady();
             }
             catch (Exception e)
@@ -185,7 +204,20 @@ namespace JigsawFun.Ads
         private void OnAdLoaded(LevelPlayAdInfo adInfo)
         {
             isAdLoaded = true;
+            isLoading = false;
+            consecutiveNoFillCount = 0;
+            consecutiveErrorCount = 0;
+            nextAllowedLoadTime = Time.unscaledTime;
             Log($"激励视频广告加载成功: {adInfo.AdUnitId}");
+            if (pendingShow && !isAdShowing)
+            {
+                string placement = string.IsNullOrEmpty(pendingPlacement) ? "hint_reward" : pendingPlacement;
+                Action cb = pendingRewardCallback;
+                pendingShow = false;
+                pendingPlacement = null;
+                pendingRewardCallback = null;
+                ShowAd(placement, cb);
+            }
         }
 
         /// <summary>
@@ -195,10 +227,18 @@ namespace JigsawFun.Ads
         private void OnAdLoadFailed(LevelPlayAdError error)
         {
             isAdLoaded = false;
+            isLoading = false;
             LogError($"激励视频广告加载失败: {error.ErrorMessage}");
+            if (pendingShow)
+            {
+                pendingShow = false;
+                pendingPlacement = null;
+                pendingRewardCallback = null;
+                currentRewardCallback = null;
+                OnRewardedAdFailed?.Invoke(error != null ? error.ErrorMessage : "load failed");
+            }
 
-            // 延迟重试加载
-            StartCoroutine(RetryLoadAd());
+            ScheduleRetry(error != null ? error.ErrorMessage : null);
         }
 
         /// <summary>
@@ -225,7 +265,7 @@ namespace JigsawFun.Ads
             currentRewardCallback = null;
 
             // 重新加载广告
-            LoadAd();
+            ScheduleRetry(error != null ? error.LevelPlayError.ToString() : null);
         }
 
         /// <summary>
@@ -260,6 +300,10 @@ namespace JigsawFun.Ads
         {
             isAdShowing = false;
             isAdLoaded = false;
+            isLoading = false;
+            pendingShow = false;
+            pendingPlacement = null;
+            pendingRewardCallback = null;
 
             Log($"激励视频广告关闭: {adInfo.AdUnitId}");
             OnRewardedAdClosed?.Invoke();
@@ -268,7 +312,7 @@ namespace JigsawFun.Ads
             currentRewardCallback = null;
 
             // 预加载下一个广告
-            LoadAd();
+            ScheduleRetry(null);
         }
 
         #endregion
@@ -291,7 +335,7 @@ namespace JigsawFun.Ads
                 }
                 else
                 {
-                    LogError("HintManager实例不存在，无法发放提示奖励");
+                    Log("HintManager实例不存在，跳过通过HintManager发放提示奖励");
                 }
             }
             catch (Exception e)
@@ -308,6 +352,72 @@ namespace JigsawFun.Ads
         {
             yield return new WaitForSeconds(5f); // 等待5秒后重试
             LoadAd();
+        }
+
+        private void ScheduleRetry(string reason)
+        {
+            float delay = 5f;
+            bool noFill = !string.IsNullOrEmpty(reason) && reason.IndexOf("no fill", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (noFill)
+            {
+                consecutiveNoFillCount = Mathf.Clamp(consecutiveNoFillCount + 1, 0, 10);
+                delay = Mathf.Min(120f, 10f * Mathf.Pow(2f, Mathf.Max(0, consecutiveNoFillCount - 1)));
+            }
+            else
+            {
+                consecutiveErrorCount = Mathf.Clamp(consecutiveErrorCount + 1, 0, 10);
+                delay = Mathf.Min(60f, 5f * Mathf.Pow(2f, Mathf.Max(0, consecutiveErrorCount - 1)));
+            }
+
+            nextAllowedLoadTime = Mathf.Max(nextAllowedLoadTime, Time.unscaledTime + delay);
+
+            if (retryCoroutine != null)
+            {
+                StopCoroutine(retryCoroutine);
+                retryCoroutine = null;
+            }
+            retryCoroutine = StartCoroutine(RetryLoadAd());
+        }
+
+        private bool CanLoadNow()
+        {
+            if (!isInitialized)
+            {
+                Log("激励视频处理器尚未初始化");
+                return false;
+            }
+
+            if (AdManager.Instance != null && !AdManager.Instance.IsInitialized)
+            {
+                Log("广告系统尚未初始化完成，跳过激励视频加载");
+                return false;
+            }
+
+            return EnsureAdObject();
+        }
+
+        private bool EnsureAdObject()
+        {
+            if (rewardedVideoAd != null) return true;
+
+            if (string.IsNullOrEmpty(adUnitId))
+            {
+                if (AdManager.Instance != null && AdManager.Instance.Config != null)
+                {
+                    adConfig = AdManager.Instance.Config;
+                    adUnitId = adConfig != null ? adConfig.RewardedAdUnitId : null;
+                }
+            }
+
+            if (string.IsNullOrEmpty(adUnitId))
+            {
+                LogError("Rewarded AdUnitId为空，无法创建广告对象");
+                return false;
+            }
+
+            rewardedVideoAd = new LevelPlayRewardedAd(adUnitId);
+            RegisterLevelPlayEvents();
+            return true;
         }
 
         /// <summary>
@@ -333,7 +443,15 @@ namespace JigsawFun.Ads
 
         private void OnDestroy()
         {
-            UnregisterLevelPlayEvents();
+            if (rewardedVideoAd != null)
+            {
+                UnregisterLevelPlayEvents();
+            }
+            if (retryCoroutine != null)
+            {
+                StopCoroutine(retryCoroutine);
+                retryCoroutine = null;
+            }
         }
     }
 }

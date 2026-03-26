@@ -17,6 +17,9 @@ public abstract class BasePage : MonoBehaviour
     public PageAnimationType animationType = PageAnimationType.Scale;
     
     protected bool isVisible = false;
+    private Sequence activeSequence;
+    [Header("Footer")]
+    public bool showFooter = true;
     
     public enum PageAnimationType
     {
@@ -44,6 +47,7 @@ public abstract class BasePage : MonoBehaviour
     /// </summary>
     protected virtual void InitializePage()
     {
+        KillActiveTweens();
         if (canvasGroup != null)
         {
             canvasGroup.alpha = 0f;
@@ -51,18 +55,18 @@ public abstract class BasePage : MonoBehaviour
             canvasGroup.blocksRaycasts = false;
         }
         
-        //if (pageTransform != null)
-        //{
-        //    switch (animationType)
-        //    {
-        //        case PageAnimationType.Scale:
-        //            pageTransform.localScale = Vector3.zero;
-        //            break;
-        //        case PageAnimationType.Slide:
-        //            pageTransform.anchoredPosition = new Vector2(Screen.width, 0);
-        //            break;
-        //    }
-        //}
+        if (pageTransform != null)
+        {
+            switch (animationType)
+            {
+                case PageAnimationType.Scale:
+                    pageTransform.localScale = Vector3.zero;
+                    break;
+                case PageAnimationType.Slide:
+                    pageTransform.anchoredPosition = new Vector2(Screen.width, 0);
+                    break;
+            }
+        }
         
         gameObject.SetActive(false);
     }
@@ -72,16 +76,33 @@ public abstract class BasePage : MonoBehaviour
     /// </summary>
     public virtual void ShowPage()
     {
+        ShowPage(true, null);
+    }
+
+    public virtual void ShowPage(bool withAnimation)
+    {
+        ShowPage(withAnimation, null);
+    }
+
+    public virtual void ShowPage(bool withAnimation, System.Action onComplete)
+    {
         if (isVisible) return;
         
         gameObject.SetActive(true);
         isVisible = true;
         
-        // 执行显示动画
-        //PlayShowAnimation();
-        
         // 调用子类的显示逻辑
         OnPageShow();
+
+        if (withAnimation)
+        {
+            PlayShowAnimation(onComplete);
+        }
+        else
+        {
+            SetVisibleInstant(true);
+            onComplete?.Invoke();
+        }
     }
     
     /// <summary>
@@ -90,22 +111,27 @@ public abstract class BasePage : MonoBehaviour
     /// <param name="withAnimation">是否播放动画</param>
     public virtual void HidePage(bool withAnimation = true)
     {
+        HidePage(withAnimation, null);
+    }
+
+    public virtual void HidePage(bool withAnimation, System.Action onComplete)
+    {
         if (!isVisible) return;
         
         isVisible = false;
 
-        //if (withAnimation)
-        //{
-        //    PlayHideAnimation(() => {
-        //        gameObject.SetActive(false);
-        //    });
-        //}
-        //else
-        //{
-        //    gameObject.SetActive(false);
-        //}
-
-        gameObject.SetActive(false);
+        if (withAnimation)
+        {
+            PlayHideAnimation(() => {
+                gameObject.SetActive(false);
+                onComplete?.Invoke();
+            });
+        }
+        else
+        {
+            gameObject.SetActive(false);
+            onComplete?.Invoke();
+        }
 
         // 调用子类的隐藏逻辑
         OnPageHide();
@@ -114,16 +140,17 @@ public abstract class BasePage : MonoBehaviour
     /// <summary>
     /// 播放显示动画
     /// </summary>
-    protected virtual void PlayShowAnimation()
+    protected virtual void PlayShowAnimation(System.Action onComplete = null)
     {
-        Sequence showSequence = DOTween.Sequence();
+        KillActiveTweens();
+        activeSequence = DOTween.Sequence();
         
         // 设置CanvasGroup可交互
         if (canvasGroup != null)
         {
             canvasGroup.interactable = true;
             canvasGroup.blocksRaycasts = true;
-            showSequence.Append(canvasGroup.DOFade(1f, animationDuration));
+            activeSequence.Append(canvasGroup.DOFade(1f, animationDuration));
         }
         
         // 根据动画类型播放不同动画
@@ -133,12 +160,12 @@ public abstract class BasePage : MonoBehaviour
             {
                 case PageAnimationType.Scale:
                     pageTransform.localScale = Vector3.zero;
-                    showSequence.Join(pageTransform.DOScale(Vector3.one, animationDuration).SetEase(showEase));
+                    activeSequence.Join(pageTransform.DOScale(Vector3.one, animationDuration).SetEase(showEase));
                     break;
                     
                 case PageAnimationType.Slide:
                     pageTransform.anchoredPosition = new Vector2(Screen.width, 0);
-                    showSequence.Join(pageTransform.DOAnchorPos(Vector2.zero, animationDuration).SetEase(showEase));
+                    activeSequence.Join(pageTransform.DOAnchorPos(Vector2.zero, animationDuration).SetEase(showEase));
                     break;
                     
                 case PageAnimationType.Fade:
@@ -146,6 +173,8 @@ public abstract class BasePage : MonoBehaviour
                     break;
             }
         }
+        
+        activeSequence.OnComplete(() => onComplete?.Invoke());
     }
     
     /// <summary>
@@ -154,14 +183,15 @@ public abstract class BasePage : MonoBehaviour
     /// <param name="onComplete">动画完成回调</param>
     protected virtual void PlayHideAnimation(System.Action onComplete = null)
     {
-        Sequence hideSequence = DOTween.Sequence();
+        KillActiveTweens();
+        activeSequence = DOTween.Sequence();
         
         // 设置CanvasGroup不可交互
         if (canvasGroup != null)
         {
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
-            hideSequence.Append(canvasGroup.DOFade(0f, animationDuration));
+            activeSequence.Append(canvasGroup.DOFade(0f, animationDuration));
         }
         
         // 根据动画类型播放不同动画
@@ -170,11 +200,11 @@ public abstract class BasePage : MonoBehaviour
             switch (animationType)
             {
                 case PageAnimationType.Scale:
-                    hideSequence.Join(pageTransform.DOScale(Vector3.zero, animationDuration).SetEase(hideEase));
+                    activeSequence.Join(pageTransform.DOScale(Vector3.zero, animationDuration).SetEase(hideEase));
                     break;
                     
                 case PageAnimationType.Slide:
-                    hideSequence.Join(pageTransform.DOAnchorPos(new Vector2(Screen.width, 0), animationDuration).SetEase(hideEase));
+                    // Slide 隐藏不移动位置，避免过渡中露出背景，只做淡出
                     break;
                     
                 case PageAnimationType.Fade:
@@ -184,7 +214,42 @@ public abstract class BasePage : MonoBehaviour
         }
         
         // 动画完成回调
-        hideSequence.OnComplete(() => onComplete?.Invoke());
+        activeSequence.OnComplete(() => onComplete?.Invoke());
+    }
+
+    private void SetVisibleInstant(bool visible)
+    {
+        KillActiveTweens();
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = visible ? 1f : 0f;
+            canvasGroup.interactable = visible;
+            canvasGroup.blocksRaycasts = visible;
+        }
+
+        if (pageTransform != null)
+        {
+            switch (animationType)
+            {
+                case PageAnimationType.Scale:
+                    pageTransform.localScale = visible ? Vector3.one : Vector3.zero;
+                    break;
+                case PageAnimationType.Slide:
+                    pageTransform.anchoredPosition = visible ? Vector2.zero : Vector2.zero;
+                    break;
+            }
+        }
+    }
+
+    private void KillActiveTweens()
+    {
+        if (activeSequence != null)
+        {
+            activeSequence.Kill(false);
+            activeSequence = null;
+        }
+        if (canvasGroup != null) DOTween.Kill(canvasGroup, false);
+        if (pageTransform != null) DOTween.Kill(pageTransform, false);
     }
     
     /// <summary>

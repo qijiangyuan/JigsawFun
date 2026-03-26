@@ -3,6 +3,7 @@ using UnityEngine;
 using DG.Tweening;
 using System;
 using UnityEngine.EventSystems;
+using JigsawFun.Ads;
 
 public class UIManager : MonoBehaviour
 {
@@ -19,9 +20,17 @@ public class UIManager : MonoBehaviour
     public GameObject EventSystem;
     public GameObject Canvas;
 
-    //private Stack<BasePage> pageStack = new Stack<BasePage>();
+    private readonly Stack<BasePage> pageStack = new Stack<BasePage>();
     private BasePage currentPage;
     private bool isLoadingPageActive = false;
+    [SerializeField] private float bannerHeightDpPhone = 250f;
+    [SerializeField] private float bannerHeightDpTablet = 90f;
+    private RectTransform cachedFooterRect;
+    private Vector2 cachedFooterAnchoredPos;
+    private bool cachedFooterPosValid;
+    private bool footerOffsetApplied;
+    [SerializeField] private bool debugUseSimulatedBannerVisibility;
+    [SerializeField] private bool debugSimulatedBannerVisible;
 
     private void Awake()
     {
@@ -45,6 +54,10 @@ public class UIManager : MonoBehaviour
 
         // 订阅GameManager事件
         SubscribeToGameEvents();
+        AdManager.OnAdManagerInitialized -= HandleAdManagerInitialized;
+        AdManager.OnAdManagerInitialized += HandleAdManagerInitialized;
+        TryHookBannerEvents();
+        UpdateFooterForBanner();
 
         // 显示Gallery页面作为首页
         ShowPage<GalleryPage>();
@@ -54,6 +67,8 @@ public class UIManager : MonoBehaviour
     {
         // 取消订阅事件
         UnsubscribeFromGameEvents();
+        AdManager.OnAdManagerInitialized -= HandleAdManagerInitialized;
+        UnhookBannerEvents();
     }
 
     /// <summary>
@@ -80,12 +95,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-
-
-        ShowPage(targetPage);
-
-        // 执行页面设置
-        setupAction?.Invoke(targetPage);
+        ShowPageInternal(targetPage, true, setupAction);
     }
 
     public void HidePage<T>() where T : BasePage
@@ -106,7 +116,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        targetPage.HidePage();
+        targetPage.HidePage((targetPage is DifficultyPage) || (targetPage is VictoryPage));
     }
 
 
@@ -117,20 +127,63 @@ public class UIManager : MonoBehaviour
     /// <param name="addToStack">是否添加到页面栈中</param>
     public void ShowPage(BasePage page, bool addToStack = true)
     {
-        if (page == null) return;
+        ShowPageInternal(page, addToStack, (Action<BasePage>)null);
+    }
 
-        // 如果当前有页面，先隐藏
-        //if (currentPage != null)
-        //{
-        //    currentPage.HidePage();
-        //    if (addToStack)
-        //    {
-        //        pageStack.Push(currentPage);
-        //    }
-        //}
+    private void ShowPageInternal<T>(T page, bool addToStack, Action<T> setupAction) where T : BasePage
+    {
+        if (page == null) return;
+        if (currentPage == page)
+        {
+            bool useAnim = (page is DifficultyPage) || (page is VictoryPage);
+            bool setupBeforeShow = page is DifficultyPage;
+            if (setupBeforeShow) setupAction?.Invoke(page);
+            if (page is LoadingPage)
+            {
+                page.ShowPage(false);
+                page.transform.SetAsLastSibling();
+                setupAction?.Invoke(page);
+                SetFooterVisible(false);
+                UpdateBannerForPage(page);
+                return;
+            }
+            page.ShowPage(useAnim, () =>
+            {
+                if (!setupBeforeShow) setupAction?.Invoke(page);
+                SetFooterVisible(page.showFooter && !(page is LoadingPage));
+                UpdateBannerForPage(page);
+            });
+            return;
+        }
+
+        BasePage previous = currentPage;
+        if (addToStack && previous != null)
+        {
+            pageStack.Push(previous);
+        }
 
         currentPage = page;
-        page.ShowPage();
+
+        bool useAnimation = (page is DifficultyPage) || (page is VictoryPage);
+        bool setupBefore = page is DifficultyPage;
+        if (setupBefore) setupAction?.Invoke(page);
+        page.ShowPage(useAnimation, () =>
+        {
+            if (!setupBefore) setupAction?.Invoke(page);
+            SetFooterVisible(page.showFooter && !(page is LoadingPage));
+            UpdateBannerForPage(page);
+
+            if (useAnimation && previous != null && previous != page && !(previous is LoadingPage))
+            {
+                previous.HidePage((previous is DifficultyPage) || (previous is VictoryPage));
+            }
+        });
+
+        if (!useAnimation && previous != null && previous != page && !(previous is LoadingPage))
+        {
+            previous.HidePage((previous is DifficultyPage) || (previous is VictoryPage));
+        }
+
     }
 
 
@@ -140,13 +193,18 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void GoBack()
     {
-        //if (pageStack.Count > 0)
-        //{
-        //    BasePage previousPage = pageStack.Pop();
-        //    ShowPage(previousPage, false);
-        //}
+        if (pageStack.Count > 0)
+        {
+            BasePage previousPage = pageStack.Pop();
+            ShowPage(previousPage, false);
+            return;
+        }
 
-        currentPage.HidePage();
+        if (currentPage != null)
+        {
+            currentPage.HidePage((currentPage is DifficultyPage) || (currentPage is VictoryPage));
+            currentPage = null;
+        }
     }
 
     ///// <summary>
@@ -162,20 +220,194 @@ public class UIManager : MonoBehaviour
     /// </summary>
     private void HideAllPages()
     {
+        pageStack.Clear();
+        currentPage = null;
         foreach (BasePage page in pages)
         {
             if (page != null)
             {
-                page.HidePage();
+                page.HidePage(false);
             }
         }
-
-        //// 也隐藏加载页面
-        //if (loadingPage != null)
-        //{
-        //    loadingPage.HidePage();
-        //}
+        SetFooterVisible(true);
+        UpdateBannerForPage(null);
     }
+
+    private void KeepFooterOnTop()
+    {
+        Transform root = Canvas != null ? Canvas.transform : transform.root;
+        if (root == null) return;
+        Transform footer = FindChildByName(root, "Footer");
+        if (footer != null) footer.SetAsLastSibling();
+    }
+
+    private void SetFooterVisible(bool visible)
+    {
+        Transform root = Canvas != null ? Canvas.transform : transform.root;
+        if (root == null) return;
+        Transform footer = FindChildByName(root, "Footer");
+        if (footer != null)
+        {
+            footer.gameObject.SetActive(visible);
+            if (visible) footer.SetAsLastSibling();
+        }
+        UpdateFooterForBanner();
+    }
+
+    private Transform FindChildByName(Transform root, string name)
+    {
+        if (root == null || string.IsNullOrEmpty(name)) return null;
+        var all = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var t = all[i];
+            if (t != null && t.name == name) return t;
+        }
+        return null;
+    }
+
+    private void HandleAdManagerInitialized()
+    {
+        TryHookBannerEvents();
+        UpdateFooterForBanner();
+    }
+
+    private void TryHookBannerEvents()
+    {
+        var ad = AdManager.Instance != null ? AdManager.Instance : FindObjectOfType<AdManager>(true);
+        if (ad == null || ad.BannerHandler == null) return;
+        ad.BannerHandler.OnBannerVisibilityChanged -= HandleBannerVisibilityChanged;
+        ad.BannerHandler.OnBannerVisibilityChanged += HandleBannerVisibilityChanged;
+    }
+
+    private void UnhookBannerEvents()
+    {
+        var ad = AdManager.Instance;
+        if (ad == null || ad.BannerHandler == null) return;
+        ad.BannerHandler.OnBannerVisibilityChanged -= HandleBannerVisibilityChanged;
+    }
+
+    private void HandleBannerVisibilityChanged(bool _)
+    {
+        UpdateFooterForBanner();
+    }
+
+    private void UpdateBannerForPage(BasePage page)
+    {
+        if (page == null) return;
+        if (debugUseSimulatedBannerVisibility) return;
+        var ad = AdManager.Instance != null ? AdManager.Instance : FindObjectOfType<AdManager>(true);
+        if (ad == null) 
+        {
+            Debug.Log("[UIManager] AdManager is null, cannot show/hide banner");
+            return;
+        }
+        if (ad.BannerHandler == null)
+        {
+            Debug.Log("[UIManager] BannerHandler is null, cannot show/hide banner");
+            return;
+        }
+
+        bool shouldShow = page is LoadingPage || page is GameplayPage || page is VictoryPage;
+        if (shouldShow)
+        {
+            Debug.Log($"[UIManager] 请求显示Banner，因为当前页面是: {page.GetType().Name}");
+            ad.BannerHandler.ShowBanner();
+        }
+        else
+        {
+            Debug.Log($"[UIManager] 请求隐藏Banner，因为当前页面是: {page.GetType().Name}");
+            ad.BannerHandler.HideBanner();
+        }
+    }
+
+    private void UpdateFooterForBanner()
+    {
+        Transform root = Canvas != null ? Canvas.transform : transform.root;
+        if (root == null) return;
+        var footer = FindChildByName(root, "Footer") as RectTransform;
+        if (footer == null) return;
+
+        if (cachedFooterRect != footer)
+        {
+            cachedFooterRect = footer;
+            cachedFooterPosValid = false;
+            footerOffsetApplied = false;
+        }
+
+        if (!cachedFooterPosValid)
+        {
+            cachedFooterAnchoredPos = footer.anchoredPosition;
+            cachedFooterPosValid = true;
+        }
+
+        bool footerVisible = footer.gameObject.activeInHierarchy;
+        bool bannerVisible = debugUseSimulatedBannerVisibility
+            ? debugSimulatedBannerVisible
+            : (AdManager.Instance != null && AdManager.Instance.BannerHandler != null && AdManager.Instance.BannerHandler.IsBannerVisible());
+
+        if (!footerVisible || !bannerVisible)
+        {
+            if (footerOffsetApplied)
+            {
+                footer.anchoredPosition = cachedFooterAnchoredPos;
+                footerOffsetApplied = false;
+            }
+            return;
+        }
+
+        float pixels = GetBannerHeightPixels();
+        float scaleFactor = 1f;
+        var canvasComp = Canvas != null ? Canvas.GetComponent<UnityEngine.Canvas>() : null;
+        if (canvasComp != null && canvasComp.scaleFactor > 0.01f) scaleFactor = canvasComp.scaleFactor;
+        float offset = pixels / scaleFactor;
+
+        footer.anchoredPosition = new Vector2(cachedFooterAnchoredPos.x, cachedFooterAnchoredPos.y + offset);
+        footerOffsetApplied = true;
+    }
+
+    public void DebugBannerVisibleOn()
+    {
+        debugUseSimulatedBannerVisibility = true;
+        debugSimulatedBannerVisible = true;
+        UpdateFooterForBanner();
+    }
+
+    public void DebugBannerVisibleOff()
+    {
+        debugUseSimulatedBannerVisibility = true;
+        debugSimulatedBannerVisible = false;
+        UpdateFooterForBanner();
+    }
+
+    public void DebugBannerVisibleToggle()
+    {
+        debugUseSimulatedBannerVisibility = true;
+        debugSimulatedBannerVisible = !debugSimulatedBannerVisible;
+        UpdateFooterForBanner();
+    }
+
+    public void DebugBannerUseRealVisibility()
+    {
+        debugUseSimulatedBannerVisibility = false;
+        UpdateFooterForBanner();
+    }
+
+    private float GetBannerHeightPixels()
+    {
+        float dpi = Screen.dpi;
+        if (dpi <= 0f) dpi = 160f;
+        float minInches = Mathf.Min(Screen.width, Screen.height) / dpi;
+        bool tablet = minInches >= 6.5f;
+        float dp = tablet ? bannerHeightDpTablet : bannerHeightDpPhone;
+        return dp * (dpi / 160f);
+    }
+
+    //// 也隐藏加载页面
+    //if (loadingPage != null)
+    //{
+    //    loadingPage.HidePage();
+    //}
 
     ///// <summary>
     ///// 显示加载页面并开始加载

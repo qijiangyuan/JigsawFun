@@ -30,6 +30,7 @@ public class DifficultyPage : BasePage
 
     protected override void Awake()
     {
+        showFooter = false;
         base.Awake();
         InitializeComponents();
     }

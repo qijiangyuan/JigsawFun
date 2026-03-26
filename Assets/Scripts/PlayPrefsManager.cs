@@ -536,6 +536,17 @@ public class PlayPrefsManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    public void SaveLevelHintData(string imageId, int difficulty, int freeHints, int rewardedHints, float lastHintTime, bool isOnCooldown)
+    {
+        if (string.IsNullOrEmpty(imageId)) return;
+        string baseKey = $"HINT_{SanitizeFileName(imageId)}_{difficulty}";
+        PlayerPrefs.SetInt(baseKey + "_FREE", freeHints);
+        PlayerPrefs.SetInt(baseKey + "_REWARD", rewardedHints);
+        PlayerPrefs.SetFloat(baseKey + "_TIME", lastHintTime);
+        PlayerPrefs.SetInt(baseKey + "_CD", isOnCooldown ? 1 : 0);
+        PlayerPrefs.Save();
+    }
+
     public (int freeHints, int rewardedHints, float lastHintTime, bool isOnCooldown) LoadHintData(int defaultFreeHints)
     {
         int freeHints = PlayerPrefs.GetInt(HINT_FREE_KEY, defaultFreeHints);
@@ -543,6 +554,20 @@ public class PlayPrefsManager : MonoBehaviour
         float lastHintTime = PlayerPrefs.GetFloat(HINT_LAST_TIME_KEY, 0f);
         bool isOnCooldown = PlayerPrefs.GetInt(HINT_COOLDOWN_KEY, 0) == 1;
 
+        return (freeHints, rewardedHints, lastHintTime, isOnCooldown);
+    }
+
+    public (int freeHints, int rewardedHints, float lastHintTime, bool isOnCooldown) LoadLevelHintData(string imageId, int difficulty, int defaultFreeHints)
+    {
+        if (string.IsNullOrEmpty(imageId))
+        {
+            return LoadHintData(defaultFreeHints);
+        }
+        string baseKey = $"HINT_{SanitizeFileName(imageId)}_{difficulty}";
+        int freeHints = PlayerPrefs.GetInt(baseKey + "_FREE", defaultFreeHints);
+        int rewardedHints = PlayerPrefs.GetInt(baseKey + "_REWARD", 0);
+        float lastHintTime = PlayerPrefs.GetFloat(baseKey + "_TIME", 0f);
+        bool isOnCooldown = PlayerPrefs.GetInt(baseKey + "_CD", 0) == 1;
         return (freeHints, rewardedHints, lastHintTime, isOnCooldown);
     }
     #endregion

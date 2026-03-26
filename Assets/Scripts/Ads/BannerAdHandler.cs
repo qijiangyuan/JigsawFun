@@ -18,6 +18,7 @@ namespace JigsawFun.Ads
         private bool isInitialized = false;
         private bool isBannerLoaded = false;
         private bool isBannerVisible = false;
+        private bool pendingShow = false;
 
         // Banner广告事件
         public event Action OnBannerLoaded;
@@ -25,6 +26,7 @@ namespace JigsawFun.Ads
         public event Action OnBannerClicked;
         public event Action OnBannerDisplayed;
         public event Action<LevelPlayAdDisplayInfoError> OnBannerDisplayFailed;
+        public event Action<bool> OnBannerVisibilityChanged;
 
         LevelPlayBannerAd bannerAds;
 
@@ -49,12 +51,6 @@ namespace JigsawFun.Ads
 
             isInitialized = true;
             Debug.Log("[BannerAdHandler] 初始化完成");
-
-            // 如果设置了自动显示，则立即加载Banner
-            //if (autoShow)
-            //{
-            //    LoadBanner();
-            //}
         }
 
         /// <summary>
@@ -98,6 +94,12 @@ namespace JigsawFun.Ads
                 return;
             }
 
+            if (isBannerLoaded)
+            {
+                Debug.Log("[BannerAdHandler] Banner广告已加载，跳过重复加载");
+                return;
+            }
+
             Debug.Log("[BannerAdHandler] 开始加载Banner广告");
             bannerAds.LoadAd();
         }
@@ -107,16 +109,17 @@ namespace JigsawFun.Ads
         /// </summary>
         public void ShowBanner()
         {
+            Debug.Log($"[BannerAdHandler] ShowBanner called. isBannerLoaded={isBannerLoaded}, isBannerVisible={isBannerVisible}, pendingShow={pendingShow}");
             if (!isBannerLoaded)
             {
-                Debug.LogWarning("[BannerAdHandler] Banner广告尚未加载完成，无法显示");
+                Debug.Log("[BannerAdHandler] 尝试显示Banner，但广告未加载，等待加载完成后自动显示，立即发起一次加载");
+                pendingShow = true;
                 LoadBanner();
                 return;
             }
 
             if (isBannerVisible)
             {
-                Debug.LogWarning("[BannerAdHandler] Banner广告已经在显示中");
                 return;
             }
 
@@ -129,15 +132,17 @@ namespace JigsawFun.Ads
         /// </summary>
         public void HideBanner()
         {
-            if (!isBannerVisible)
+            pendingShow = false;
+            if (bannerAds != null)
             {
-                Debug.LogWarning("[BannerAdHandler] Banner广告当前未显示");
-                return;
+                if (isBannerVisible)
+                {
+                    Debug.Log("[BannerAdHandler] 隐藏Banner广告");
+                }
+                bannerAds.HideAd();
             }
-
-            Debug.Log("[BannerAdHandler] 隐藏Banner广告");
-            bannerAds.HideAd();
             isBannerVisible = false;
+            OnBannerVisibilityChanged?.Invoke(false);
         }
 
         /// <summary>
@@ -154,6 +159,7 @@ namespace JigsawFun.Ads
             bannerAds.DestroyAd();
             isBannerLoaded = false;
             isBannerVisible = false;
+            OnBannerVisibilityChanged?.Invoke(false);
         }
 
         /// <summary>
@@ -189,10 +195,13 @@ namespace JigsawFun.Ads
 
             OnBannerLoaded?.Invoke();
 
-            // 如果设置了自动显示，则立即显示Banner
-            if (autoShow && !isBannerVisible)
+            if (pendingShow)
             {
-                ShowBanner();
+                pendingShow = false;
+                if (!isBannerVisible)
+                {
+                    ShowBanner();
+                }
             }
         }
 
@@ -206,6 +215,9 @@ namespace JigsawFun.Ads
             isBannerLoaded = false;
 
             OnBannerLoadFailed?.Invoke(error);
+            
+            // 延迟重试加载
+            Invoke(nameof(LoadBanner), 15f);
         }
 
         /// <summary>
@@ -232,6 +244,7 @@ namespace JigsawFun.Ads
             isBannerVisible = true;
 
             OnBannerDisplayed?.Invoke();
+            OnBannerVisibilityChanged?.Invoke(true);
         }
 
         /// <summary>
@@ -247,6 +260,7 @@ namespace JigsawFun.Ads
             isBannerVisible = false;
 
             OnBannerDisplayFailed?.Invoke(error);
+            OnBannerVisibilityChanged?.Invoke(false);
         }
 
         #endregion

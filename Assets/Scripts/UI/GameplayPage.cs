@@ -67,6 +67,7 @@ public class GameplayPage : BasePage
 
     protected override void Awake()
     {
+        showFooter = false;
         base.Awake();
         InitializeComponents();
         InitializeAdSystem();
@@ -75,19 +76,53 @@ public class GameplayPage : BasePage
     private void OnEnable()
     {
         SubscribeToPuzzleEvents();
-
+        EnsureHintManager();
+        SubscribeToHintManagerEvents();
+        UpdateHintUI();
     }
 
     private void OnDisable()
     {
         UnsubscribeFromPuzzleEvents();
 
-        // 取消订阅提示管理器事件
-        if (hintManager != null)
-        {
-            //hintManager.OnHintCountChanged -= UpdateHintUI;
-            //hintManager.OnHintRewardReceived -= OnHintRewardReceived;
-        }
+        UnsubscribeFromHintManagerEvents();
+    }
+
+    private void EnsureHintManager()
+    {
+        if (hintManager == null) hintManager = HintManager.Instance;
+    }
+
+    private void SubscribeToHintManagerEvents()
+    {
+        if (hintManager == null) return;
+        hintManager.OnFreeHintsChanged -= OnHintCountsChanged;
+        hintManager.OnRewardedHintsChanged -= OnHintCountsChanged;
+        hintManager.OnCooldownStarted -= OnHintCooldownChanged;
+        hintManager.OnCooldownEnded -= OnHintCooldownChanged;
+        hintManager.OnFreeHintsChanged += OnHintCountsChanged;
+        hintManager.OnRewardedHintsChanged += OnHintCountsChanged;
+        hintManager.OnCooldownStarted += OnHintCooldownChanged;
+        hintManager.OnCooldownEnded += OnHintCooldownChanged;
+    }
+
+    private void UnsubscribeFromHintManagerEvents()
+    {
+        if (hintManager == null) return;
+        hintManager.OnFreeHintsChanged -= OnHintCountsChanged;
+        hintManager.OnRewardedHintsChanged -= OnHintCountsChanged;
+        hintManager.OnCooldownStarted -= OnHintCooldownChanged;
+        hintManager.OnCooldownEnded -= OnHintCooldownChanged;
+    }
+
+    private void OnHintCountsChanged(int _)
+    {
+        UpdateHintUI();
+    }
+
+    private void OnHintCooldownChanged()
+    {
+        UpdateHintUI();
     }
 
     /// <summary>
@@ -118,6 +153,18 @@ public class GameplayPage : BasePage
         SetTopControlsVisible(true);
         UpdateUI();
         UpdateHintUI();
+        UpdateTrayVisibility();
+    }
+
+    private void UpdateTrayVisibility()
+    {
+        var tray = FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray == null || tray.scrollRect == null) return;
+        bool showTray = timerStarted;
+        if (tray.scrollRect.gameObject.activeSelf != showTray)
+        {
+            tray.scrollRect.gameObject.SetActive(showTray);
+        }
     }
 
     private void SetTopControlsVisible(bool visible)
@@ -211,10 +258,7 @@ public class GameplayPage : BasePage
         }
 
         // 初始化提示管理器
-        if (hintManager == null)
-        {
-            hintManager = HintManager.Instance;
-        }
+        EnsureHintManager();
 
         // 获取拼图生成器
         //jigsawGenerator = FindObjectOfType<JigsawGenerator>();
@@ -238,10 +282,18 @@ public class GameplayPage : BasePage
         isTimerEnabled = true;
         timerStarted = true;
         startButton?.gameObject.SetActive(false);
+        UpdateHintUI();
+        UpdateTrayVisibility();
     }
 
     private void OnClearToTrayClicked()
     {
+        if (!timerStarted)
+        {
+            Debug.LogWarning("请先点击Start开始游戏后再清除拼图");
+            return;
+        }
+
         BoardGen boardGen = FindObjectOfType<BoardGen>();
         if (boardGen != null)
         {
@@ -280,7 +332,9 @@ public class GameplayPage : BasePage
         isTimerEnabled = true;
         completedPieces = 0;
         totalPieces = gameData.difficulty * gameData.difficulty;
-        hintRemaining = MaxHintsPerGame;
+        EnsureHintManager();
+        if (hintManager != null) { hintManager.AttachToCurrentLevel(); hintRemaining = Mathf.Max(0, hintManager.TotalAvailableHints); }
+        else { hintRemaining = MaxHintsPerGame; }
         timerStarted = false;
 
         // 更新UI
@@ -313,12 +367,15 @@ public class GameplayPage : BasePage
         isGameActive = true;
         isTimerEnabled = true;
         completedPieces = 0;
-        hintRemaining = MaxHintsPerGame;
+        EnsureHintManager();
+        if (hintManager != null) { hintManager.AttachToCurrentLevel(); hintRemaining = Mathf.Max(0, hintManager.TotalAvailableHints); }
+        else { hintRemaining = MaxHintsPerGame; }
         //totalPieces = currentGameData.difficulty * currentGameData.difficulty;
         timerStarted = false;
         UpdateTimerText();
         SetTopControlsVisible(false);
         startButton?.gameObject.SetActive(false);
+        UpdateHintUI();
     }
 
     /// <summary>
@@ -403,6 +460,7 @@ public class GameplayPage : BasePage
         //停止计时器
         isTimerEnabled = false;
         timerStarted = false;
+        UpdateTrayVisibility();
 
         // 使用GameManager处理游戏完成
         if (GameManager.Instance != null)
@@ -432,7 +490,14 @@ public class GameplayPage : BasePage
         }
         else
         {
-            Debug.LogWarning("PuzzleGameManager实例不存在，无法触发插屏广告逻辑！");
+            if (AdManager.Instance != null && AdManager.Instance.InterstitialHandler != null)
+            {
+                AdManager.Instance.InterstitialHandler.OnLevelCompleted();
+            }
+            else
+            {
+                Debug.LogWarning("PuzzleGameManager实例不存在，且插屏广告处理器不可用");
+            }
         }
     }
 
@@ -532,34 +597,61 @@ public class GameplayPage : BasePage
     /// </summary>
     private void OnHintButtonClicked()
     {
+        EnsureHintManager();
+        if (hintManager != null)
+        {
+            hintRemaining = Mathf.Max(0, hintManager.TotalAvailableHints);
+        }
+
+        if (!timerStarted && hintRemaining > 0)
+        {
+            Debug.LogWarning("请先点击Start开始游戏后再使用提示");
+            return;
+        }
+
         if (hintRemaining <= 0)
         {
-            // 当提示数量为0时，触发 Startup placement 的激励视频广告
-            if (AdManager.Instance != null && AdManager.Instance.CanShowRewardedVideo())
+            if (AdManager.Instance != null)
             {
-                AdManager.Instance.ShowRewardedVideo("Startup", () => 
+                if (hintManager != null)
                 {
-                    // 广告观看完成后的回调，增加提示次数
-                    hintRemaining += 3; // 假设每次观看广告获得3个提示，您可以根据需要调整
-                    UpdateHintUI();
-                    Debug.Log("观看了激励视频，获得了提示奖励");
-                });
-            }
-            else
-            {
-                Debug.LogWarning("提示次数不足，且激励视频广告未准备好。尝试重新加载...");
-                if (AdManager.Instance != null && AdManager.Instance.RewardedHandler != null)
+                    AdManager.Instance.ShowRewardedVideo("Startup");
+                }
+                else
                 {
-                    AdManager.Instance.RewardedHandler.LoadAd();
+                    AdManager.Instance.ShowRewardedVideo("Startup", () =>
+                    {
+                        hintRemaining += 3;
+                        UpdateHintUI();
+                        Debug.Log("观看了激励视频，获得了提示奖励");
+                    });
                 }
             }
+            return;
+        }
+
+        if (hintManager != null && !hintManager.HasAvailableHints)
+        {
+            UpdateHintUI();
             return;
         }
 
         var tm = PickHintTargetTileMovement();
         if (tm == null) return;
 
-        hintRemaining = Mathf.Max(0, hintRemaining - 1);
+        if (hintManager != null)
+        {
+            if (!hintManager.UseHint())
+            {
+                UpdateHintUI();
+                return;
+            }
+            hintRemaining = Mathf.Max(0, hintManager.TotalAvailableHints);
+        }
+        else
+        {
+            hintRemaining = Mathf.Max(0, hintRemaining - 1);
+        }
         UpdateHintUI();
 
         tm.enabled = true;
@@ -609,23 +701,14 @@ public class GameplayPage : BasePage
     /// </summary>
     private void InitializeAdSystem()
     {
-        // 确保AdManager已初始化
-        if (AdManager.Instance != null)
-        {
-            // 显示Banner广告
-            //AdManager.Instance.BannerHandler.ShowBanner();
-
-            // 订阅提示奖励事件
-            if (hintManager != null)
-            {
-                //hintManager.OnHintCountChanged += UpdateHintUI;
-                // hintManager.OnHintRewardReceived += OnHintRewardReceived;
-            }
-        }
-        else
+        var ad = AdManager.Instance != null ? AdManager.Instance : FindObjectOfType<AdManager>(true);
+        if (ad == null)
         {
             Debug.LogWarning("AdManager未初始化，无法显示Banner广告");
+            return;
         }
+
+        ad.EnsureInitialized();
     }
 
     /// <summary>
@@ -643,6 +726,12 @@ public class GameplayPage : BasePage
     /// </summary>
     private void UpdateHintUI()
     {
+        EnsureHintManager();
+        if (hintManager != null)
+        {
+            hintRemaining = Mathf.Max(0, hintManager.TotalAvailableHints);
+        }
+
         if (hintRemainText != null)
         {
             hintRemainText.text = $"x{hintRemaining}";
@@ -650,9 +739,14 @@ public class GameplayPage : BasePage
         }
         if (hintButton != null)
         {
-            // 当提示次数为0时，如果广告准备好了，也可以点击（触发广告）
-            bool canUseHintOrWatchAd = (hintRemaining > 0 || (AdManager.Instance != null && AdManager.Instance.CanShowRewardedVideo()));
-            //hintButton.interactable = canUseHintOrWatchAd && HasAnyUnplacedTiles();
+            bool canConsumeHint = timerStarted && hintRemaining > 0 && (hintManager == null || hintManager.HasAvailableHints);
+            bool canRequestAd = hintRemaining <= 0 && AdManager.Instance != null;
+            hintButton.interactable = canConsumeHint || canRequestAd;
+        }
+
+        if (clearToTrayButton != null)
+        {
+            clearToTrayButton.interactable = timerStarted;
         }
     }
 
@@ -816,12 +910,16 @@ public class GameplayPage : BasePage
         base.OnPageShow();
         UpdateUI();
         UpdateHintUI();
-
-        // 显示Banner广告
-        if (AdManager.Instance != null)
+        UpdateTrayVisibility();
+        if (AdManager.Instance != null && AdManager.Instance.InterstitialHandler != null)
         {
-            //AdManager.Instance.BannerHandler.ShowBanner();
+            AdManager.Instance.InterstitialHandler.LoadAd();
         }
+        if (AdManager.Instance != null && AdManager.Instance.RewardedHandler != null)
+        {
+            AdManager.Instance.RewardedHandler.LoadAd();
+        }
+        UIManager.Instance.HidePage<LoadingPage>();
     }
 
     protected override void OnPageHide()
@@ -830,12 +928,6 @@ public class GameplayPage : BasePage
 
         // 停止游戏
         isGameActive = false;
-
-        // 隐藏Banner广告
-        if (AdManager.Instance != null)
-        {
-            AdManager.Instance.BannerHandler.HideBanner();
-        }
     }
 
     /// <summary>

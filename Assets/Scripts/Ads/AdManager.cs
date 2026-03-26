@@ -24,6 +24,7 @@ namespace JigsawFun.Ads
         
         // 初始化状态
         public bool IsInitialized { get; private set; }
+        private bool isInitializing;
         
         // 事件
         public static event Action OnAdManagerInitialized;
@@ -71,10 +72,14 @@ namespace JigsawFun.Ads
         {
             try
             {
+                if (IsInitialized || isInitializing) return;
+                isInitializing = true;
+
                 if (adConfig == null)
                 {
                     LogError("AdConfig未设置，无法初始化广告系统");
                     OnAdManagerInitializationFailed?.Invoke("AdConfig未设置");
+                    isInitializing = false;
                     return;
                 }
                 
@@ -92,33 +97,57 @@ namespace JigsawFun.Ads
                 {
                     LogError("应用密钥未正确配置，请在AdConfig中设置正确的App Key");
                     OnAdManagerInitializationFailed?.Invoke("应用密钥未配置");
+                    isInitializing = false;
                     return;
                 }
 
-                // 设置LevelPlay配置
-                //LevelPlayConfiguration levelPlayConfig = new LevelPlayConfiguration.Builder(appKey)
-                //    .WithLogLevel(adConfig.EnableAdLogging ? LevelPlayLogLevel.Debug : LevelPlayLogLevel.Error)
-                //    .Build();
+                LevelPlay.OnInitSuccess -= HandleLevelPlayInitSuccess;
+                LevelPlay.OnInitFailed -= HandleLevelPlayInitFailed;
+                LevelPlay.OnInitSuccess += HandleLevelPlayInitSuccess;
+                LevelPlay.OnInitFailed += HandleLevelPlayInitFailed;
 
-                //await LevelPlay.InitializeAsync(levelPlayConfig);
-
-                //After successfully initializing LevelPlay, launch the test suite by calling the following method:
-               // LevelPlay.LaunchTestSuite();
-
-                Log("LevelPlay初始化完成，开始初始化广告处理器...");
-                
-                // 初始化广告处理器
-                InitializeAdHandlers();
-                
-                IsInitialized = true;
-                Log("广告系统初始化完成");
-                OnAdManagerInitialized?.Invoke();
+                Log("调用LevelPlay.Init...");
+                LevelPlay.Init(appKey);
             }
             catch (Exception e)
             {
                 LogError($"广告系统初始化失败: {e.Message}");
                 OnAdManagerInitializationFailed?.Invoke(e.Message);
+                isInitializing = false;
             }
+        }
+
+        public void EnsureInitialized()
+        {
+            if (IsInitialized || isInitializing) return;
+            InitializeAdSystem();
+        }
+
+        private void HandleLevelPlayInitSuccess(LevelPlayConfiguration config)
+        {
+            LevelPlay.OnInitSuccess -= HandleLevelPlayInitSuccess;
+            LevelPlay.OnInitFailed -= HandleLevelPlayInitFailed;
+
+            IsInitialized = true;
+            isInitializing = false;
+
+            Log("LevelPlay初始化成功，开始初始化广告处理器...");
+            InitializeAdHandlers();
+            Log("广告系统初始化完成");
+            OnAdManagerInitialized?.Invoke();
+        }
+
+        private void HandleLevelPlayInitFailed(LevelPlayInitError error)
+        {
+            LevelPlay.OnInitSuccess -= HandleLevelPlayInitSuccess;
+            LevelPlay.OnInitFailed -= HandleLevelPlayInitFailed;
+
+            IsInitialized = false;
+            isInitializing = false;
+
+            string msg = error != null ? error.ToString() : "unknown";
+            LogError($"LevelPlay初始化失败: {msg}");
+            OnAdManagerInitializationFailed?.Invoke(msg);
         }
         
         /// <summary>
@@ -142,6 +171,9 @@ namespace JigsawFun.Ads
             bannerHandler?.Initialize(adConfig);
             
             Log("广告处理器初始化完成");
+            interstitialHandler?.LoadAd();
+            rewardedHandler?.LoadAd();
+            bannerHandler?.LoadBanner();
         }
         
         /// <summary>

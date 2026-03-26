@@ -12,10 +12,14 @@ namespace JigsawFun.Ads
     {
         private AdConfig adConfig;
         private string adUnitId;
+        private bool isInitialized;
         
         // 广告状态
         private bool isAdLoaded = false;
         private bool isAdShowing = false;
+        private bool isLoading;
+        private Coroutine retryCoroutine;
+        private float nextAllowedLoadTime;
         
         // 频率控制
         private int completedLevels = 0;
@@ -36,14 +40,8 @@ namespace JigsawFun.Ads
         {
             adConfig = config;
             adUnitId = config.InterstitialAdUnitId;
-            
-            interstitialAd = new LevelPlayInterstitialAd(config.InterstitialAdUnitId);
-
-            // 注册LevelPlay事件
-            RegisterLevelPlayEvents();
-            
-            // 预加载广告
-            LoadAd();
+            isInitialized = true;
+            EnsureAdObject();
             
             Log("插屏广告处理器初始化完成");
         }
@@ -79,6 +77,10 @@ namespace JigsawFun.Ads
         /// </summary>
         public void LoadAd()
         {
+            if (!CanLoadNow()) return;
+            if (Time.unscaledTime < nextAllowedLoadTime) return;
+            if (isLoading) return;
+
             if (isAdLoaded)
             {
                 Log("插屏广告已加载，无需重复加载");
@@ -88,12 +90,30 @@ namespace JigsawFun.Ads
             try
             {
                 Log("开始加载插屏广告...");
+                isLoading = true;
                 interstitialAd.LoadAd();
             }
             catch (Exception e)
             {
+                isLoading = false;
                 LogError($"加载插屏广告失败: {e.Message}");
             }
+        }
+
+        private bool CanLoadNow()
+        {
+            if (!isInitialized) return false;
+            if (AdManager.Instance != null && !AdManager.Instance.IsInitialized) return false;
+            return EnsureAdObject();
+        }
+
+        private bool EnsureAdObject()
+        {
+            if (interstitialAd != null) return true;
+            if (string.IsNullOrEmpty(adUnitId)) return false;
+            interstitialAd = new LevelPlayInterstitialAd(adUnitId);
+            RegisterLevelPlayEvents();
+            return true;
         }
         
         /// <summary>
@@ -209,6 +229,13 @@ namespace JigsawFun.Ads
         private void OnAdLoaded(LevelPlayAdInfo adInfo)
         {
             isAdLoaded = true;
+            isLoading = false;
+            nextAllowedLoadTime = Time.unscaledTime;
+            if (retryCoroutine != null)
+            {
+                StopCoroutine(retryCoroutine);
+                retryCoroutine = null;
+            }
             Log($"插屏广告加载成功: {adInfo.AdUnitId}");
         }
         
@@ -219,10 +246,18 @@ namespace JigsawFun.Ads
         private void OnAdLoadFailed(LevelPlayAdError error)
         {
             isAdLoaded = false;
-            LogError($"插屏广告加载失败: {error.ErrorMessage}");
+            string msg = error != null ? error.ErrorMessage : "unknown";
+            LogError($"插屏广告加载失败: {msg}");
+
+            if (!string.IsNullOrEmpty(msg) && msg.IndexOf("Load is already called", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                isLoading = true;
+                return;
+            }
+            isLoading = false;
             
             // 延迟重试加载
-            StartCoroutine(RetryLoadAd());
+            ScheduleRetry();
         }
         
         /// <summary>
@@ -266,6 +301,7 @@ namespace JigsawFun.Ads
         {
             isAdShowing = false;
             isAdLoaded = false;
+            isLoading = false;
             lastAdShowTime = Time.time;
             
             Log($"插屏广告关闭: {adInfo.AdUnitId}");
@@ -281,9 +317,22 @@ namespace JigsawFun.Ads
         /// 重试加载广告
         /// </summary>
         /// <returns>协程</returns>
+        private void ScheduleRetry()
+        {
+            nextAllowedLoadTime = Mathf.Max(nextAllowedLoadTime, Time.unscaledTime + 5f);
+            if (retryCoroutine != null)
+            {
+                StopCoroutine(retryCoroutine);
+                retryCoroutine = null;
+            }
+            retryCoroutine = StartCoroutine(RetryLoadAd());
+        }
+
         private IEnumerator RetryLoadAd()
         {
-            yield return new WaitForSeconds(5f); // 等待5秒后重试
+            float delay = Mathf.Max(0f, nextAllowedLoadTime - Time.unscaledTime);
+            if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+            retryCoroutine = null;
             LoadAd();
         }
         
@@ -311,6 +360,11 @@ namespace JigsawFun.Ads
         private void OnDestroy()
         {
             UnregisterLevelPlayEvents();
+            if (retryCoroutine != null)
+            {
+                StopCoroutine(retryCoroutine);
+                retryCoroutine = null;
+            }
         }
     }
 }

@@ -490,7 +490,17 @@ public class GalleryPage : BasePage
         base.OnPageShow();
         BindFooterToggles();
         SetupCategoryButtons();
-        ApplyFooterTab(GetCurrentFooterTab(), true);
+        FooterTab tab = GetCurrentFooterTab();
+        if (lastFooterTab == FooterTab.Unknown || tab == FooterTab.Unknown)
+        {
+            suppressFooterCallback = true;
+            if (footerGalleryToggle != null) footerGalleryToggle.SetIsOnWithoutNotify(true);
+            if (footerMyPictureToggle != null) footerMyPictureToggle.SetIsOnWithoutNotify(false);
+            if (footerInProgressToggle != null) footerInProgressToggle.SetIsOnWithoutNotify(false);
+            suppressFooterCallback = false;
+            tab = FooterTab.Gallery;
+        }
+        ApplyFooterTab(tab, true);
     }
 
     /// <summary>

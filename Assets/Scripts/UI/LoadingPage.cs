@@ -27,6 +27,7 @@ public class LoadingPage : BasePage
 
     protected override void Awake()
     {
+        showFooter = false;
         base.Awake();
 
         // 确保组件引用
@@ -130,9 +131,8 @@ public class LoadingPage : BasePage
 
         // 加载完成后回调
         onComplete?.Invoke();
-        // 隐藏加载页面
+        // 保持加载页面显示，等待目标页面就绪后由UIManager或页面显式隐藏
         isLoading = false;
-        HidePage();
     }
 
     /// <summary>
@@ -195,9 +195,8 @@ public class LoadingPage : BasePage
         // 调用完成回调
         onLoadingComplete?.Invoke();
 
-        // 隐藏加载页面
+        // 保持加载页面显示，等待目标页面就绪后由UIManager或页面显式隐藏
         isLoading = false;
-        HidePage();
     }
 
     /// <summary>
@@ -384,4 +383,50 @@ public class LoadingPage : BasePage
     /// 检查是否正在加载
     /// </summary>
     public bool IsLoading => isLoading;
+
+    public override void ShowPage()
+    {
+        ShowPage(false, null);
+    }
+
+    public override void HidePage(bool withAnimation = true)
+    {
+        HidePage(false, null);
+    }
+
+    public override void ShowPage(bool withAnimation, Action onComplete)
+    {
+        if (isVisible) return;
+        gameObject.SetActive(true);
+        isVisible = true;
+        transform.SetAsLastSibling();
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+        }
+        if (pageTransform != null)
+        {
+            pageTransform.localScale = Vector3.one;
+            pageTransform.anchoredPosition = Vector2.zero;
+        }
+        OnPageShow();
+        onComplete?.Invoke();
+    }
+
+    public override void HidePage(bool withAnimation, Action onComplete)
+    {
+        if (!isVisible) return;
+        isVisible = false;
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
+        gameObject.SetActive(false);
+        OnPageHide();
+        onComplete?.Invoke();
+    }
 }

@@ -20,6 +20,8 @@ namespace JigsawFun.Ads
         private int currentRewardedHints;
         private bool isOnCooldown = false;
         private float lastHintTime;
+        private string currentImageId;
+        private int currentDifficulty;
 
         // 提示系统事件
         public event Action<int> OnFreeHintsChanged;
@@ -72,6 +74,12 @@ namespace JigsawFun.Ads
             if (Instance == null)
             {
                 Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else if (Instance != this)
+            {
+                Destroy(gameObject);
+                return;
             }
 
             // 获取PlayPrefsManager实例
@@ -92,6 +100,24 @@ namespace JigsawFun.Ads
             {
                 //AdManager.Instance.RewardedHandler. += HandleRewardEarned;
             }
+        }
+
+        public void AttachToCurrentLevel()
+        {
+            var gm = GameManager.Instance;
+            if (gm != null && gm.currentGameData != null)
+            {
+                currentImageId = gm.currentGameData.selectedImage != null ? gm.currentGameData.selectedImage.name : gm.currentGameData.imageName;
+                currentDifficulty = gm.currentGameData.difficulty;
+                LoadHintDataForLevel(currentImageId, currentDifficulty);
+            }
+        }
+
+        public void AttachToLevel(string imageId, int difficulty)
+        {
+            currentImageId = imageId;
+            currentDifficulty = difficulty;
+            LoadHintDataForLevel(currentImageId, currentDifficulty);
         }
 
         private void Update()
@@ -134,7 +160,7 @@ namespace JigsawFun.Ads
             StartCooldown();
 
             // 保存数据
-            SaveHintData();
+            SaveHintDataScoped();
 
             OnHintUsed?.Invoke();
 
@@ -155,14 +181,8 @@ namespace JigsawFun.Ads
                 return;
             }
 
-            if (!AdManager.Instance.RewardedHandler.CanShowAd())
-            {
-                Debug.LogWarning("[HintManager] 激励视频广告尚未准备好");
-                return;
-            }
-
             Debug.Log("[HintManager] 请求观看激励视频获得提示");
-            AdManager.Instance.RewardedHandler.ShowAd();
+            AdManager.Instance.ShowRewardedVideo("hint_reward");
         }
 
         /// <summary>
@@ -185,7 +205,7 @@ namespace JigsawFun.Ads
         {
             currentRewardedHints += amount;
             OnRewardedHintsChanged?.Invoke(currentRewardedHints);
-            SaveHintData();
+            SaveHintDataScoped();
 
             Debug.Log($"[HintManager] 添加奖励提示: +{amount}，总计: {currentRewardedHints}");
         }
@@ -232,6 +252,18 @@ namespace JigsawFun.Ads
             playPrefsManager.SaveHintData(currentFreeHints, currentRewardedHints, lastHintTime, isOnCooldown);
         }
 
+        private void SaveHintDataScoped()
+        {
+            if (!string.IsNullOrEmpty(currentImageId))
+            {
+                playPrefsManager.SaveLevelHintData(currentImageId, currentDifficulty, currentFreeHints, currentRewardedHints, lastHintTime, isOnCooldown);
+            }
+            else
+            {
+                SaveHintData();
+            }
+        }
+
         /// <summary>
         /// 从PlayerPrefs加载提示数据
         /// </summary>
@@ -250,6 +282,22 @@ namespace JigsawFun.Ads
             }
 
             Debug.Log($"[HintManager] 加载提示数据 - 免费: {currentFreeHints}, 奖励: {currentRewardedHints}, 冷却: {isOnCooldown}");
+        }
+
+        private void LoadHintDataForLevel(string imageId, int difficulty)
+        {
+            var hintData = playPrefsManager.LoadLevelHintData(imageId, difficulty, maxFreeHints);
+            currentFreeHints = hintData.freeHints;
+            currentRewardedHints = hintData.rewardedHints;
+            lastHintTime = hintData.lastHintTime;
+            isOnCooldown = hintData.isOnCooldown;
+
+            if (isOnCooldown && Time.time - lastHintTime >= hintCooldownTime)
+            {
+                isOnCooldown = false;
+            }
+
+            Debug.Log($"[HintManager] 加载关卡提示 - {imageId}#{difficulty} 免费:{currentFreeHints} 奖励:{currentRewardedHints} 冷却:{isOnCooldown}");
         }
 
         /// <summary>
@@ -292,7 +340,7 @@ namespace JigsawFun.Ads
             }
 
             // 保存数据
-            SaveHintData();
+            SaveHintDataScoped();
         }
     }
 }

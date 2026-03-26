@@ -35,9 +35,12 @@ public class VictoryPage : BasePage
     private int difficulty;
     private int starRating;
     private static TMP_FontAsset sCjkFont;
+    [SerializeField] private TMP_FontAsset cjkFontOverride;
 
     protected override void Awake()
     {
+        showFooter = false;
+        animationType = PageAnimationType.Scale;
         base.Awake();
         InitializeComponents();
         EnsureTopmost();
@@ -192,32 +195,39 @@ public class VictoryPage : BasePage
 
     private void EnsureCjkFont()
     {
-        if (sCjkFont == null)
+        TMP_FontAsset fontToUse = cjkFontOverride;
+        if (fontToUse == null)
         {
-            try
+#if UNITY_EDITOR || UNITY_STANDALONE
+            if (sCjkFont == null)
             {
-                string[] names = new[]
+                try
                 {
-                    "Microsoft YaHei","SimHei","NSimSun","DengXian","Noto Sans CJK SC","Source Han Sans SC","PingFang SC"
-                };
-                Font f = Font.CreateDynamicFontFromOSFont(names, 32);
-                if (f != null)
-                {
-                    sCjkFont = TMP_FontAsset.CreateFontAsset(f);
-                    if (sCjkFont != null)
+                    string[] names = new[]
                     {
-                        sCjkFont.atlasPopulationMode = AtlasPopulationMode.Dynamic;
-                        sCjkFont.name = "RuntimeCJK";
+                        "Microsoft YaHei","SimHei","NSimSun","DengXian","Noto Sans CJK SC","Source Han Sans SC","PingFang SC"
+                    };
+                    Font f = Font.CreateDynamicFontFromOSFont(names, 32);
+                    if (f != null)
+                    {
+                        sCjkFont = TMP_FontAsset.CreateFontAsset(f);
+                        if (sCjkFont != null)
+                        {
+                            sCjkFont.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                            sCjkFont.name = "RuntimeCJK";
+                        }
                     }
                 }
+                catch {}
             }
-            catch {}
+#endif
+            fontToUse = sCjkFont;
         }
-        if (sCjkFont == null) return;
+        if (fontToUse == null) return;
         var tmps = GetComponentsInChildren<TextMeshProUGUI>(true);
         for (int i = 0; i < tmps.Length; i++)
         {
-            if (tmps[i] != null) tmps[i].font = sCjkFont;
+            if (tmps[i] != null) tmps[i].font = fontToUse;
         }
     }
 
@@ -319,7 +329,8 @@ public class VictoryPage : BasePage
             return;
         }
         var gd = GameManager.Instance.currentGameData;
-        UIManager.Instance.HidePage<VictoryPage>();
+        UIManager.Instance.ShowPage<LoadingPage>();
+        HidePage(false);
         GameManager.Instance.StartNewGame(gd.selectedImage, gd.difficulty, gd.showBackground);
     }
 
@@ -373,6 +384,12 @@ public class VictoryPage : BasePage
     protected override void OnPageShow()
     {
         base.OnPageShow();
+
+        var tray = FindObjectOfType<PuzzleScrollTray>(true);
+        if (tray != null && tray.scrollRect != null)
+        {
+            tray.scrollRect.gameObject.SetActive(false);
+        }
 
         // 重置动画状态
         ResetAnimationState();
